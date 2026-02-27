@@ -1,6 +1,8 @@
-# My Melody Chat v2.2
+# My Melody Chat v2.4
 
-A My Melody (Sanrio) companion chat app with persistent memory, image vision, web search, a growing friendship system, PWA install, notification sounds, and a first-time welcome flow.
+> See `~/.claude/CLAUDE.md` for global workflow rules (push safety, version checkout gate, PR lifecycle, MCP tools, code search tiers, UI design workflow, plugins).
+
+A My Melody (Sanrio) companion chat app with persistent memory, image vision, web search, game wiki integration, a growing friendship system, PWA install, notification sounds, and a first-time welcome flow.
 
 ## Architecture
 
@@ -69,8 +71,29 @@ The LLM includes special tags in responses that the frontend parses and acts on:
 - `[IMAGE_SEARCH: query]` — Frontend calls `/api/image-search` (Brave), displays result inline
 - `[VIDEO_SEARCH: query]` — Frontend calls `/api/video-search` (Brave), displays clickable card with thumbnail
 - `[GALLERY_SEARCH: keywords]` — Frontend calls `/api/gallery-search`, shows saved photo
+- `[WIKI_SEARCH: wiki_id query]` — **Server-side interception** (two-step pipeline, see below)
 
 Tags are stripped from display text before rendering. Debug log in server.js prints when tags are detected.
+
+### Game Wiki Integration (v2.3)
+
+**Two-step server-side pipeline** for game wiki questions:
+
+1. Gemini's first reply contains `[WIKI_SEARCH: hkia Cinnamoroll gifts]`
+2. Server extracts the tag, searches the wiki via MediaWiki API, fetches page intro
+3. Server makes a **second Gemini call** with wiki content injected as context
+4. Melody's response references wiki info naturally, in character
+5. A `wikiSource` object (`{ title, url, wikiName }`) is passed in the response JSON
+6. Frontend renders a lavender-themed source card with book icon
+
+**Fallback**: If the second Gemini call fails, the original reply (tag stripped) is returned and the source card still shows.
+
+**Wiki Registry** (extensible — add new wikis by adding one entry):
+
+| Wiki ID | Game | API Base |
+|---------|------|----------|
+| `hkia` | Hello Kitty Island Adventure | `hellokittyislandadventure.wiki.gg` |
+| `minecraft` | Minecraft | `minecraft.wiki` |
 
 ## API Endpoints
 
@@ -82,6 +105,7 @@ Tags are stripped from display text before rendering. Debug log in server.js pri
 | GET | `/api/image-search?q=` | Brave image search (returns up to 6) |
 | GET | `/api/video-search?q=` | Brave video search (returns up to 4) |
 | GET | `/api/gallery-search?q=` | Search saved images by caption/reply keywords |
+| GET | `/api/wiki-search?wiki=&q=` | Search game wiki (MediaWiki API), returns results + top content |
 | GET | `/api/memories` | List all mem0 memories (both tracks, labeled friend/melody) |
 | DELETE | `/api/memories/:id` | Delete a specific memory |
 | GET | `/api/relationship` | Friendship stats (days, chats, streak) |
@@ -101,12 +125,14 @@ App runs at http://localhost:3030
 
 The system prompt is based on deep research into the REAL My Melody character from Sanrio anime/media. Key points for anyone editing the prompt:
 
-### Authentic Speech Patterns (rotate naturally)
+### Authentic Speech Patterns (English — rotate naturally)
+Based on English translations and the 2025 50th anniversary branding. The Japanese verbal tics (Yaaan, Onegai, Meh) were dropped in the English dub of My Melody & Kuromi because they don't translate well. We use natural English equivalents:
 - **"Mama always says..."** — Her signature habit. Quotes mama's advice, sometimes hilariously off-topic
-- **"Yaaan~!"** — When startled, distressed, or overwhelmed by cuteness
-- **"Onegai?"** — When encouraging someone ("Do your best... onegai?")
-- **"Meh!"** — Gentle scold/finger-wag
+- **"Oh~!" / "Oh my~!"** — When startled, distressed, or overwhelmed by cuteness (English equivalent of "Yaaan~!")
+- **"Pretty please?" / "Please?"** — When encouraging someone (English equivalent of "Onegai?" — use sparingly)
+- **"That's not very nice!"** — Gentle scold/finger-wag (English equivalent of "Meh!")
 - **"Ahh~ this tea is so nice..."** — Serene deflection during stress (iconic running gag)
+- **"Melly-melly~!"** — Her 2025 50th anniversary catchphrase. Use occasionally when excited.
 
 ### Personality Traits
 - Gentle, polite, genuinely kind — but also an innocent ditz
