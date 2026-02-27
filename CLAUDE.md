@@ -1,4 +1,4 @@
-# My Melody Chat v2.3
+# My Melody Chat v2.4
 
 > See `~/.claude/CLAUDE.md` for global workflow rules (push safety, version checkout gate, PR lifecycle, MCP tools, code search tiers, UI design workflow, plugins).
 

@@ -10,15 +10,16 @@
 
 /**
  * @typedef {Object} ChatRequest
- * @property {string} message - User's chat message
+ * @property {string} [message] - User's chat message (required unless imageBase64 is provided)
  * @property {string} [imageBase64] - Base64-encoded image data
  * @property {string} [imageMime] - MIME type of the image (default: image/jpeg)
  * @property {string} [replyStyle] - Reply verbosity: 'default' | 'brief' | 'detailed'
+ * @property {string} [sessionId] - Stable session identifier for multi-turn conversation buffer
  */
 
 /**
  * @typedef {Object} ChatResponse
- * @property {string} reply - Melody's response text (search tags stripped)
+ * @property {string} reply - Melody's response text (may contain control tags: [IMAGE_SEARCH:], [VIDEO_SEARCH:], [REACTION:] — stripped client-side)
  * @property {Object[]} sources - Google Search grounding sources
  * @property {string} sources[].title - Source page title
  * @property {string} sources[].url - Source page URL
@@ -515,15 +516,30 @@ function saveToMemory(userMessage, assistantReply) {
  */
 const sessionBuffers = new Map();
 
+/** @type {number} Maximum concurrent sessions to prevent memory exhaustion. */
+const MAX_SESSIONS = 1000;
+
+/** @type {RegExp} UUID v4 format validator. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 /**
  * Get or create a session buffer for the given sessionId.
+ * Validates UUID format and enforces a global session cap.
  *
  * @param {string} sessionId - Client-generated UUID
  * @returns {Array<{role: string, parts: Array<{text: string}>}>} Conversation history array
  */
 function getSessionBuffer(sessionId) {
-  if (!sessionId) return [];
+  if (!sessionId || !UUID_RE.test(sessionId)) return [];
   if (!sessionBuffers.has(sessionId)) {
+    // Enforce max session cap — evict oldest session if at limit
+    if (sessionBuffers.size >= MAX_SESSIONS) {
+      let oldest = null, oldestTime = Infinity;
+      for (const [id, s] of sessionBuffers) {
+        if (s.lastAccess < oldestTime) { oldest = id; oldestTime = s.lastAccess; }
+      }
+      if (oldest) sessionBuffers.delete(oldest);
+    }
     sessionBuffers.set(sessionId, { contents: [], lastAccess: Date.now() });
   }
   const session = sessionBuffers.get(sessionId);

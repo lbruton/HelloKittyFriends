@@ -256,10 +256,9 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
  * @param {{url: string, title?: string, thumbnail?: string}|null} [videoResult] - Brave video search result object.
  * @param {Array<{url: string, title?: string}>|null} [sources] - Google Search grounding source links.
  * @param {{title: string, url: string, wikiName: string}|null} [wikiSource] - Game wiki source card data.
- * @param {string|null} [reactionGifUrl] - URL of a reaction GIF from nekos.best.
  * @returns {void}
  */
-function addMessage(text, role, imageDataURL, searchImageUrl, videoResult, sources, wikiSource, reactionGifUrl) {
+function addMessage(text, role, imageDataURL, searchImageUrl, videoResult, sources, wikiSource) {
   const msg = document.createElement('div');
   msg.className = `message ${role}`;
 
@@ -385,16 +384,6 @@ function addMessage(text, role, imageDataURL, searchImageUrl, videoResult, sourc
     bubble.appendChild(wikiCard);
   }
 
-  // Append reaction GIF if provided
-  if (reactionGifUrl && role === 'assistant') {
-    const gif = document.createElement('img');
-    gif.src = reactionGifUrl;
-    gif.alt = 'Reaction';
-    gif.style.cssText = 'max-width:200px;border-radius:8px;margin-top:8px;display:block';
-    gif.addEventListener('error', () => gif.remove());
-    bubble.appendChild(gif);
-  }
-
   msg.appendChild(avatar);
   msg.appendChild(bubble);
   chatArea.appendChild(msg);
@@ -482,23 +471,32 @@ async function processReply(text, sources, wikiSource) {
     }
   }
 
-  // Fetch reaction GIF from nekos.best (fire-and-forget on error)
+  // Render message immediately (don't block on reaction GIF)
+  addMessage(displayText, 'assistant', null, searchImageUrl, videoResult, sources, wikiSource);
+
+  // Fetch and append reaction GIF asynchronously (non-blocking)
   if (reactionMatch) {
     const emotion = reactionMatch[1].toLowerCase();
     const categories = REACTION_MAP[emotion];
     if (categories) {
       const category = categories[Math.floor(Math.random() * categories.length)];
-      try {
-        const gifRes = await fetch(`https://nekos.best/api/v2/${category}?amount=1`);
-        const gifData = await gifRes.json();
-        if (gifData.results?.[0]?.url) {
-          reactionGifUrl = gifData.results[0].url;
-        }
-      } catch { /* silently skip */ }
+      const lastBubble = chatArea.querySelector('.message.assistant:last-child .message-bubble');
+      fetch(`https://nekos.best/api/v2/${category}?amount=1`)
+        .then(r => r.json())
+        .then(data => {
+          const url = data.results?.[0]?.url;
+          if (url && lastBubble) {
+            const gif = document.createElement('img');
+            gif.src = url;
+            gif.alt = 'Reaction';
+            gif.style.cssText = 'max-width:200px;border-radius:8px;margin-top:8px;display:block';
+            gif.addEventListener('error', () => gif.remove());
+            lastBubble.appendChild(gif);
+          }
+        })
+        .catch(() => { /* silently skip */ });
     }
   }
-
-  addMessage(displayText, 'assistant', null, searchImageUrl, videoResult, sources, wikiSource, reactionGifUrl);
 }
 
 // ─── Reaction GIF Mapping ───
