@@ -1,0 +1,8 @@
+node_modules/
+.env
+certs/
+data/
+.DS_Store
+.mcp.json
+.spec-workflow/
+.claude/

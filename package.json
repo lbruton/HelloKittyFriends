@@ -1,0 +1,15 @@
+{
+  "name": "my-melody-chat",
+  "version": "2.1.0",
+  "description": "My Melody Companion Chat App v2.1 — Gemini 3.1 Pro, Brave Search, dual-track mem0, relationship system",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@google/genai": "^1.0.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  }
+}
