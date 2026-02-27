@@ -475,7 +475,8 @@ async function searchMemories(query, userId) {
       body: JSON.stringify({
         query,
         filters: { user_id: getUserMemId(userId) },
-        limit: 10
+        top_k: 10,
+        rerank: true
       })
     });
     if (!res.ok) return [];
@@ -505,7 +506,8 @@ async function searchAgentMemories(query) {
       body: JSON.stringify({
         query,
         filters: { agent_id: MEM0_AGENT_ID },
-        limit: 5
+        top_k: 5,
+        rerank: true
       })
     });
     if (!res.ok) return [];
@@ -528,9 +530,17 @@ async function searchAgentMemories(query) {
  * @param {string} userMessage - The user's message text
  * @param {string} assistantReply - Melody's response text
  * @param {string} [userId] - User key (e.g., 'amelia', 'lonnie', 'guest'). When omitted, uses MEM0_USER_ID fallback. Guest users skip the user track save.
+ * @param {Object} [meta] - Optional metadata context (source, sessionId, hasImage)
  * @returns {void}
  */
-function saveToMemory(userMessage, assistantReply, userId) {
+function saveToMemory(userMessage, assistantReply, userId, meta = {}) {
+  const metadata = {
+    source: meta.source || 'chat',
+    ...(meta.sessionId && { session_id: meta.sessionId }),
+    ...(meta.hasImage && { has_image: true }),
+    ...(meta.replyStyle && meta.replyStyle !== 'default' && { reply_style: meta.replyStyle })
+  };
+
   // User track: facts about the friend (skip for guest — no persistent identity)
   if (userId !== 'guest') {
     fetch(`${MEM0_BASE}/v1/memories/`, {
@@ -545,7 +555,8 @@ function saveToMemory(userMessage, assistantReply, userId) {
           { role: 'assistant', content: assistantReply }
         ],
         user_id: getUserMemId(userId),
-        infer: true
+        infer: true,
+        metadata
       })
     }).catch(err => console.error('mem0 user save error:', err.message));
   }
@@ -563,7 +574,8 @@ function saveToMemory(userMessage, assistantReply, userId) {
         { role: 'assistant', content: assistantReply }
       ],
       agent_id: MEM0_AGENT_ID,
-      infer: true
+      infer: true,
+      metadata
     })
   }).catch(err => console.error('mem0 agent save error:', err.message));
 }
@@ -845,8 +857,13 @@ app.post('/api/chat', async (req, res) => {
     // Save exchange to conversation buffer
     addToSessionBuffer(sessionId, message || '[shared an image]', reply);
 
-    // Save to mem0 asynchronously (per-user track)
-    saveToMemory(message || '[shared an image]', reply, userId);
+    // Save to mem0 asynchronously (per-user track, with metadata)
+    saveToMemory(message || '[shared an image]', reply, userId, {
+      source: 'chat',
+      sessionId,
+      hasImage: !!imageBase64,
+      replyStyle
+    });
 
     res.json({ reply, sources, wikiSource });
   } catch (err) {
