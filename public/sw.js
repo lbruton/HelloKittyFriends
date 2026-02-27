@@ -4,7 +4,7 @@
  * Implements app shell caching with stale-while-revalidate for static assets
  * and network-only for API and data routes. Cache versioning uses melody-vX.Y format.
  *
- * @version 2.3.0
+ * @version 2.4.0
  */
 
 /**
@@ -12,7 +12,7 @@
  * Format: melody-vMAJOR.MINOR (e.g., melody-v2.3).
  * @type {string}
  */
-const CACHE_NAME = 'melody-v2.3';
+const CACHE_NAME = 'melody-v2.4';
 const APP_SHELL = [
   '/',
   '/index.html',

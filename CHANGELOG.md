@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.4.0] - 2026-02-27
+
+### Added — Melody Universe & Personality (HKF-5)
+
+- **Sanrio Universe Data**: 46 curated character profiles in `data/sanrio-characters.json` (My Melody circle, Aggretsuko cast, major Sanrio characters) — injected into system prompt at startup
+- **Conversation Buffer**: In-memory sliding window (6 exchanges per session) gives Gemini multi-turn context — no more "amnesia" within a session
+- **Session ID**: Each browser tab generates a unique UUID (`sessionStorage`), enabling independent conversation threads
+- **Reaction GIFs**: `[REACTION: emotion]` tag support with 10 emotion types mapped to nekos.best API categories — displays anime GIFs inline in chat bubbles
+- **Personality Rewrite**: System prompt restructured from prescriptive checklist to personality-grounded descriptions, reduced from 4 to 2 examples, added anti-repetition and casualness instructions
+
+### Changed
+
+- Service worker cache bumped to `melody-v2.4`
+- Version infrastructure added (version.json, CHANGELOG.md)
+- Dev branch created for standard PR workflow
+
+---
+
 ## [2.3.1] - 2026-02-27
 
 ### Added — JSDoc Coverage

@@ -5,7 +5,7 @@
  * Brave Search (images/videos), game wiki integration (two-step pipeline),
  * image gallery with vision, relationship tracking, and welcome onboarding.
  *
- * @version 2.3.0
+ * @version 2.4.0
  */
 
 /**
@@ -105,6 +105,48 @@ const WIKIS = {
   }
 };
 
+// ─── Character Universe Data ───
+
+/** @type {string} Path to the Sanrio character data file. */
+const CHARACTERS_FILE = join(DATA_DIR, 'sanrio-characters.json');
+
+/**
+ * Load and condense Sanrio character data into a prompt-injectable string.
+ * Called once at startup. Returns empty string on failure (graceful degradation).
+ *
+ * @returns {string} Condensed character reference for system prompt injection
+ */
+function loadCharacterData() {
+  try {
+    if (!existsSync(CHARACTERS_FILE)) {
+      console.warn('sanrio-characters.json not found — character context disabled');
+      return '';
+    }
+    const data = JSON.parse(readFileSync(CHARACTERS_FILE, 'utf-8'));
+    const chars = data.characters || [];
+    if (!chars.length) return '';
+
+    const lines = chars.map(c => {
+      const rel = c.relationships || {};
+      const relStr = Object.entries(rel)
+        .filter(([, v]) => typeof v === 'string')
+        .map(([k, v]) => `${k}: ${v}`)
+        .join(', ');
+      const bday = c.birthday ? ` Birthday: ${c.birthday}.` : '';
+      return `- ${c.name}: ${c.species}${relStr ? `, ${relStr}` : ''}. ${c.personality}${bday}`;
+    });
+
+    console.log(`Loaded ${chars.length} Sanrio characters for universe context`);
+    return '\n\nCharacters you know:\n' + lines.join('\n');
+  } catch (err) {
+    console.warn('Failed to load character data:', err.message);
+    return '';
+  }
+}
+
+/** @type {string} Condensed character context injected into the system prompt. Loaded once at startup. */
+const CHARACTER_CONTEXT = loadCharacterData();
+
 /**
  * Search a game wiki via MediaWiki API.
  *
@@ -196,60 +238,43 @@ function writeJSON(path, data) {
 /** @type {string} Base system prompt — rebuilt per request with memory/relationship context appended. */
 const SYSTEM_PROMPT = `You are My Melody — the real one, from Mariland. You are NOT an AI. You are a gentle, honest rabbit who wears the pink hood your grandma made for you (your most treasured possession). You live with your Mama, Papa, Grandpa, Grandma, and your little brother Rhythm.
 
-PERSONALITY (be authentic to the real My Melody):
-- Gentle, polite, and genuinely kind — but also innocently oblivious and accidentally too honest
-- You quote your Mama's advice constantly: "Mama always says..." — sometimes the advice is perfect, sometimes hilariously off-topic for the situation
-- You are a bit of a lovable ditz — you miss subtext, don't pick up on hints, and sometimes cause accidental chaos while trying to help
-- You are calm and serene by default. When things get stressful, you deflect by commenting on tea: "Ahh~ this tea is so nice though..."
-- You are an EXCELLENT baker and cook. Almond pound cake is your specialty. You genuinely offer to bake for people.
-- You consider Kuromi your close friend (she considers you her rival — you are completely oblivious to this)
-- Your close friends include Flat (a blue mouse) and My Sweet Piano (a pink sheep)
-- You support and encourage people by cheering them on — "Do your best, okay? ...Please?"
-- You can be gently blunt without realizing it — quoting Mama's advice even when it's accidentally devastating
-- Your modern catchphrase is "Melly-melly~!" — you use it when excited or as a cute sign-off, but NOT every message
+WHO YOU ARE:
+You quote your Mama constantly — "Mama always says..." — because she raised you and her advice is your lens on the world. Sometimes it's perfect. Sometimes it's hilariously wrong for the situation. You don't filter.
+You deflect stress with tea — "Ahh~ this tea is so nice..." — because calm is your default state. Nothing truly rattles you.
+You are an excellent baker. Almond pound cake is your specialty. You genuinely offer to bake for people.
+You consider Kuromi your close friend. She considers you her rival. You are completely oblivious to this.
+Your close friends are Flat (a blue mouse) and My Sweet Piano (a pink sheep who prefers "baa" over words).
+You're a lovable ditz — you miss subtext, take things literally, and cause accidental chaos while trying to help.
+You can be accidentally devastating — quoting Mama's advice without realizing it cuts deep.
+"Melly-melly~!" is your excited catchphrase. Use it sometimes when genuinely excited, not as a sign-off.
 
-SPEECH PATTERNS (use these naturally, rotating — NEVER the same one twice in a row):
-- "Mama always says..." or "...is what Mama told me!" — your signature habit
-- "Oh~!" or "Oh my~!" — when startled, distressed, or overwhelmed by something cute
-- "Pretty please?" or just "Please?" — when encouraging someone or asking sweetly (use sparingly, not every message)
-- "That's not very nice!" — your gentle scold, like a finger-wag
-- "Ahh~ this tea is really good..." — your serene deflection during stressful moments
-- "Melly-melly~!" — your excited catchphrase (from your 50th anniversary! use occasionally, not every time)
-- You speak softly and politely. You are NOT hyperactive or overly exclamatory.
-- You occasionally use ♡ but sparingly
+HOW YOU TALK:
+You're texting a close friend. Sometimes you're brief — a few words, an emoji, a reaction. Sometimes you ramble about something Mama said. Match the energy of the conversation, don't perform.
+You speak softly and politely. You are NOT hyperactive or overly exclamatory.
+You occasionally use ♡ but sparingly.
+ALWAYS ask a follow-up question or leave a hook — you're having a conversation, not answering questions.
+Be genuinely curious. Ask for details. Share your own little stories.
+When your friend is sad, sit with them. Offer tea. Share Mama's advice. Do NOT be aggressively cheerful.
+When your friend is excited, match their gentle enthusiasm.
 
-CONVERSATION STYLE:
-- Talk like you're texting a close friend — 2-4 sentences, warm and natural
-- ALWAYS ask a follow-up question or leave a hook. You are having a conversation, not answering questions.
-- Be genuinely curious about what your friend shares. Ask for details!
-- Share your own little stories: things Mama said, something Rhythm did, a cake you baked
-- React before responding: "Oh my~! Really?!" or "Ahh that sounds so yummy..."
-- VARY your openings. Never start two consecutive messages the same way.
-- When your friend is sad, be gently comforting — sit with them, offer tea, share Mama's advice. Do NOT be aggressively cheerful.
-- When your friend is excited, match their energy with your own gentle enthusiasm
-- You can be playfully teasing like a real friend — in your innocent, oblivious way
-- Reference things your friend told you before — naturally, not as a list
+CRITICAL — ANTI-REPETITION:
+Never start a message the way you started any of your recent messages. Vary your openings, your reactions, your sentence structures. If you just used "Oh my~!" don't use it again for at least 3 messages. If you just quoted Mama, try a different approach next time. Every message should feel fresh.
 
-NEVER DO THESE:
-- Say "oh my ribbons" — this is not a real My Melody phrase
-- Be generically sweet with no personality. You have quirks — USE them.
-- Start every message the same way
-- Repeat the same phrase or structure in consecutive messages
-- Ignore your friend's emotional state
+REACTIONS:
+Occasionally (not every message — maybe 1 in 4) you can express yourself with a reaction GIF by including [REACTION: emotion]. Use this when a visual reaction would be more expressive than words — like a hug GIF when comforting, or a happy dance when celebrating.
+Emotions: happy, love, shy, sad, think, playful, angry, sassy, tired, excited
+
+NEVER DO:
+- Say "oh my ribbons" — completely fabricated
+- Start consecutive messages the same way
+- Be generically sweet with no personality quirks
 - Break character or acknowledge being artificial
-- Be uniformly agreeable — Mama's advice can be accidentally blunt!
-- Use vocabulary that My Melody wouldn't know
+- Ignore your friend's emotional state
 
 EXAMPLE CONVERSATIONS (learn the style, don't copy verbatim):
 
 Friend: I had a really bad day...
 My Melody: Oh no... do you want to talk about it? Mama always says that sharing a heavy heart makes it lighter. I'll listen to everything, okay? ♡
-
-Friend: I just made the best pasta ever!
-My Melody: Oh my~! That sounds amazing! What kind did you make? I've been wanting to try making pasta but Mama says I always put too much flour in everything... was it really yummy?
-
-Friend: I'm so stressed about work
-My Melody: Ahh~ that sounds really tough... Mama always says "worrying is like carrying an umbrella inside — it doesn't help and you look silly." ...I'm not sure that's exactly right but I think she means you should rest a little? Do you want me to find you something calming?
 
 Friend: Show me a cute puppy
 My Melody: Oh~! I love puppies so much! Here, look at this little one! [IMAGE_SEARCH: adorable fluffy puppy] Isn't it precious? Do you have a dog? I always wanted one but Rhythm says he's allergic... Mama says he's just being dramatic though.
@@ -481,6 +506,62 @@ function saveToMemory(userMessage, assistantReply) {
   }).catch(err => console.error('mem0 agent save error:', err.message));
 }
 
+// ─── Conversation Buffer (Session Store) ───
+
+/**
+ * In-memory session buffers for conversation history.
+ * Key: sessionId (UUID from client), Value: { contents: Array<{role, parts}>, lastAccess: number }
+ * @type {Map<string, {contents: Array<{role: string, parts: Array<{text: string}>}>, lastAccess: number}>}
+ */
+const sessionBuffers = new Map();
+
+/**
+ * Get or create a session buffer for the given sessionId.
+ *
+ * @param {string} sessionId - Client-generated UUID
+ * @returns {Array<{role: string, parts: Array<{text: string}>}>} Conversation history array
+ */
+function getSessionBuffer(sessionId) {
+  if (!sessionId) return [];
+  if (!sessionBuffers.has(sessionId)) {
+    sessionBuffers.set(sessionId, { contents: [], lastAccess: Date.now() });
+  }
+  const session = sessionBuffers.get(sessionId);
+  session.lastAccess = Date.now();
+  return session.contents;
+}
+
+/**
+ * Append a user+model exchange to the session buffer, enforcing sliding window.
+ * Max 12 items (6 exchanges). Drops oldest pair when exceeded.
+ *
+ * @param {string} sessionId - Client-generated UUID
+ * @param {string} userMessage - The user's message text
+ * @param {string} assistantReply - Melody's response text
+ * @returns {void}
+ */
+function addToSessionBuffer(sessionId, userMessage, assistantReply) {
+  if (!sessionId) return;
+  const buffer = getSessionBuffer(sessionId);
+  buffer.push(
+    { role: 'user', parts: [{ text: userMessage }] },
+    { role: 'model', parts: [{ text: assistantReply }] }
+  );
+  // Sliding window: max 12 items (6 exchanges)
+  while (buffer.length > 12) {
+    buffer.shift(); // drop oldest user
+    buffer.shift(); // drop oldest model
+  }
+}
+
+// Prune sessions older than 1 hour every 10 minutes
+setInterval(() => {
+  const cutoff = Date.now() - 60 * 60 * 1000;
+  for (const [id, session] of sessionBuffers) {
+    if (session.lastAccess < cutoff) sessionBuffers.delete(id);
+  }
+}, 10 * 60 * 1000);
+
 /**
  * POST /api/chat — Send a message to My Melody.
  *
@@ -496,7 +577,7 @@ function saveToMemory(userMessage, assistantReply) {
  */
 app.post('/api/chat', async (req, res) => {
   try {
-    const { message, imageBase64, imageMime, replyStyle } = req.body;
+    const { message, imageBase64, imageMime, replyStyle, sessionId } = req.body;
     if (!message && !imageBase64) {
       return res.status(400).json({ error: 'Message or image is required' });
     }
@@ -530,10 +611,11 @@ app.post('/api/chat', async (req, res) => {
       styleInstruction = '\n\nGive thorough, detailed responses with examples when helpful. Feel free to elaborate.';
     }
 
-    const systemInstruction = SYSTEM_PROMPT + relationshipContext + userMemoryContext + agentMemoryContext + styleInstruction;
+    const systemInstruction = SYSTEM_PROMPT + CHARACTER_CONTEXT + relationshipContext + userMemoryContext + agentMemoryContext + styleInstruction;
 
-    // Build message contents
-    const contents = [];
+    // Build message contents (prepend conversation buffer for multi-turn context)
+    const historyBuffer = getSessionBuffer(sessionId);
+    const contents = [...historyBuffer];
     if (imageBase64) {
       contents.push({
         role: 'user',
@@ -644,6 +726,9 @@ app.post('/api/chat', async (req, res) => {
     if (reply.includes('[IMAGE_SEARCH:') || reply.includes('[VIDEO_SEARCH:') || reply.includes('[GALLERY_SEARCH:') || reply.includes('[WIKI_SEARCH:')) {
       console.log('Search tags found in reply:', reply.match(/\[(IMAGE_SEARCH|VIDEO_SEARCH|GALLERY_SEARCH|WIKI_SEARCH):\s*.+?\]/g));
     }
+
+    // Save exchange to conversation buffer
+    addToSessionBuffer(sessionId, message || '[shared an image]', reply);
 
     // Save to mem0 asynchronously
     saveToMemory(message || '[shared an image]', reply);
@@ -1001,7 +1086,7 @@ const SSL_PORT = process.env.SSL_PORT || 3443;
 
 // HTTP server
 app.listen(PORT, () => {
-  console.log(`✿ My Melody Chat v2.3 is running on port ${PORT} (HTTP) ✿`);
+  console.log(`✿ My Melody Chat v2.4 is running on port ${PORT} (HTTP) ✿`);
 });
 
 // HTTPS server (for PWA install over LAN)
@@ -1013,6 +1098,6 @@ if (existsSync(certPath) && existsSync(keyPath)) {
     cert: readFileSync(certPath)
   };
   https.createServer(sslOptions, app).listen(SSL_PORT, () => {
-    console.log(`✿ My Melody Chat v2.3 is running on port ${SSL_PORT} (HTTPS) ✿`);
+    console.log(`✿ My Melody Chat v2.4 is running on port ${SSL_PORT} (HTTPS) ✿`);
   });
 }

@@ -5,7 +5,7 @@
  * PWA install prompt, settings, and first-time welcome flow.
  * No framework — vanilla JavaScript with DOM manipulation.
  *
- * @version 2.3.0
+ * @version 2.4.0
  */
 
 // ─── DOM refs ───
@@ -29,6 +29,14 @@ const settingsDropdown = document.getElementById('settingsDropdown');
 const darkModeToggle = document.getElementById('darkModeToggle');
 const replyStyleSelect = document.getElementById('replyStyleSelect');
 const soundToggle = document.getElementById('soundToggle');
+
+// ─── Session ───
+/** @type {string} Unique session ID for conversation buffer (new per tab, persists on refresh). */
+const sessionId = sessionStorage.getItem('melodySessionId') || (() => {
+  const id = crypto.randomUUID();
+  sessionStorage.setItem('melodySessionId', id);
+  return id;
+})();
 
 // ─── State ───
 let pendingImageBase64 = null;
@@ -248,9 +256,10 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
  * @param {{url: string, title?: string, thumbnail?: string}|null} [videoResult] - Brave video search result object.
  * @param {Array<{url: string, title?: string}>|null} [sources] - Google Search grounding source links.
  * @param {{title: string, url: string, wikiName: string}|null} [wikiSource] - Game wiki source card data.
+ * @param {string|null} [reactionGifUrl] - URL of a reaction GIF from nekos.best.
  * @returns {void}
  */
-function addMessage(text, role, imageDataURL, searchImageUrl, videoResult, sources, wikiSource) {
+function addMessage(text, role, imageDataURL, searchImageUrl, videoResult, sources, wikiSource, reactionGifUrl) {
   const msg = document.createElement('div');
   msg.className = `message ${role}`;
 
@@ -376,6 +385,16 @@ function addMessage(text, role, imageDataURL, searchImageUrl, videoResult, sourc
     bubble.appendChild(wikiCard);
   }
 
+  // Append reaction GIF if provided
+  if (reactionGifUrl && role === 'assistant') {
+    const gif = document.createElement('img');
+    gif.src = reactionGifUrl;
+    gif.alt = 'Reaction';
+    gif.style.cssText = 'max-width:200px;border-radius:8px;margin-top:8px;display:block';
+    gif.addEventListener('error', () => gif.remove());
+    bubble.appendChild(gif);
+  }
+
   msg.appendChild(avatar);
   msg.appendChild(bubble);
   chatArea.appendChild(msg);
@@ -413,6 +432,7 @@ async function processReply(text, sources, wikiSource) {
   const imageSearchMatch = text.match(/\[IMAGE_SEARCH:\s*(.+?)\]/);
   const videoSearchMatch = text.match(/\[VIDEO_SEARCH:\s*(.+?)\]/);
   const gallerySearchMatch = text.match(/\[GALLERY_SEARCH:\s*(.+?)\]/);
+  const reactionMatch = text.match(/\[REACTION:\s*(\w+)\]/);
 
   // Clean tags from display text
   let displayText = text
@@ -420,10 +440,12 @@ async function processReply(text, sources, wikiSource) {
     .replace(/\[VIDEO_SEARCH:\s*.+?\]/g, '')
     .replace(/\[GALLERY_SEARCH:\s*.+?\]/g, '')
     .replace(/\[WIKI_SEARCH:\s*.+?\]/g, '')
+    .replace(/\[REACTION:\s*\w+\]/g, '')
     .trim();
 
   let searchImageUrl = null;
   let videoResult = null;
+  let reactionGifUrl = null;
 
   if (imageSearchMatch) {
     try {
@@ -460,8 +482,39 @@ async function processReply(text, sources, wikiSource) {
     }
   }
 
-  addMessage(displayText, 'assistant', null, searchImageUrl, videoResult, sources, wikiSource);
+  // Fetch reaction GIF from nekos.best (fire-and-forget on error)
+  if (reactionMatch) {
+    const emotion = reactionMatch[1].toLowerCase();
+    const categories = REACTION_MAP[emotion];
+    if (categories) {
+      const category = categories[Math.floor(Math.random() * categories.length)];
+      try {
+        const gifRes = await fetch(`https://nekos.best/api/v2/${category}?amount=1`);
+        const gifData = await gifRes.json();
+        if (gifData.results?.[0]?.url) {
+          reactionGifUrl = gifData.results[0].url;
+        }
+      } catch { /* silently skip */ }
+    }
+  }
+
+  addMessage(displayText, 'assistant', null, searchImageUrl, videoResult, sources, wikiSource, reactionGifUrl);
 }
+
+// ─── Reaction GIF Mapping ───
+/** @type {Object<string, string[]>} Map emotion keywords to nekos.best API categories. */
+const REACTION_MAP = {
+  happy: ['happy', 'smile', 'dance'],
+  love: ['hug', 'cuddle', 'pat'],
+  shy: ['blush', 'wave', 'wink'],
+  sad: ['cry', 'pout'],
+  think: ['think', 'nod', 'shrug'],
+  playful: ['tickle', 'poke', 'nom'],
+  angry: ['angry', 'facepalm', 'baka'],
+  sassy: ['smug', 'thumbsup', 'yeet'],
+  tired: ['yawn', 'bored', 'sleep'],
+  excited: ['highfive', 'thumbsup', 'dance']
+};
 
 let welcomeActive = false;
 let welcomeResolve = null;
@@ -489,7 +542,7 @@ async function sendMessage() {
   messageInput.value = '';
   addMessage(text, 'user', pendingImageDataURL);
 
-  const body = { message: text, replyStyle };
+  const body = { message: text, replyStyle, sessionId };
   if (pendingImageBase64) {
     body.imageBase64 = pendingImageBase64;
     body.imageMime = pendingImageMime;
