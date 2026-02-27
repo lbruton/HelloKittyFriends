@@ -203,7 +203,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 });
 
 // ─── Chat ───
-function addMessage(text, role, imageDataURL, searchImageUrl, videoResult, sources) {
+function addMessage(text, role, imageDataURL, searchImageUrl, videoResult, sources, wikiSource) {
   const msg = document.createElement('div');
   msg.className = `message ${role}`;
 
@@ -299,6 +299,36 @@ function addMessage(text, role, imageDataURL, searchImageUrl, videoResult, sourc
     }
   }
 
+  // Append wiki source card if provided
+  if (wikiSource && role === 'assistant') {
+    const wikiCard = document.createElement('a');
+    wikiCard.href = wikiSource.url;
+    wikiCard.target = '_blank';
+    wikiCard.rel = 'noopener noreferrer';
+    wikiCard.className = 'wiki-source';
+
+    const icon = document.createElement('span');
+    icon.className = 'wiki-source-icon';
+    icon.textContent = '\u{1F4D6}';
+
+    const info = document.createElement('div');
+    info.className = 'wiki-source-info';
+
+    const label = document.createElement('span');
+    label.className = 'wiki-source-label';
+    label.textContent = wikiSource.wikiName || 'Wiki';
+
+    const title = document.createElement('span');
+    title.className = 'wiki-source-title';
+    title.textContent = wikiSource.title || 'Source';
+
+    info.appendChild(label);
+    info.appendChild(title);
+    wikiCard.appendChild(icon);
+    wikiCard.appendChild(info);
+    bubble.appendChild(wikiCard);
+  }
+
   msg.appendChild(avatar);
   msg.appendChild(bubble);
   chatArea.appendChild(msg);
@@ -314,7 +344,7 @@ function hideTyping() {
   typingIndicator.classList.remove('active');
 }
 
-async function processReply(text, sources) {
+async function processReply(text, sources, wikiSource) {
   const imageSearchMatch = text.match(/\[IMAGE_SEARCH:\s*(.+?)\]/);
   const videoSearchMatch = text.match(/\[VIDEO_SEARCH:\s*(.+?)\]/);
   const gallerySearchMatch = text.match(/\[GALLERY_SEARCH:\s*(.+?)\]/);
@@ -324,6 +354,7 @@ async function processReply(text, sources) {
     .replace(/\[IMAGE_SEARCH:\s*.+?\]/g, '')
     .replace(/\[VIDEO_SEARCH:\s*.+?\]/g, '')
     .replace(/\[GALLERY_SEARCH:\s*.+?\]/g, '')
+    .replace(/\[WIKI_SEARCH:\s*.+?\]/g, '')
     .trim();
 
   let searchImageUrl = null;
@@ -364,7 +395,7 @@ async function processReply(text, sources) {
     }
   }
 
-  addMessage(displayText, 'assistant', null, searchImageUrl, videoResult, sources);
+  addMessage(displayText, 'assistant', null, searchImageUrl, videoResult, sources, wikiSource);
 }
 
 let welcomeActive = false;
@@ -411,7 +442,7 @@ async function sendMessage() {
     playReplyChime();
 
     if (data.reply) {
-      await processReply(data.reply, data.sources);
+      await processReply(data.reply, data.sources, data.wikiSource);
     } else {
       addMessage('Oh no, something went wrong... Please try again, my sweet friend! \u2661', 'assistant');
     }

@@ -804,6 +804,54 @@ html, body {
   transform: translateY(-1px);
 }
 
+/* ─── Wiki source card ─── */
+.wiki-source {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #F3EEFF, #EDE4FF);
+  border: 1px solid rgba(155, 89, 182, 0.2);
+  border-radius: 12px;
+  text-decoration: none;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.wiki-source:hover {
+  background: linear-gradient(135deg, #EDE4FF, #E4D8FF);
+  transform: translateY(-1px);
+}
+
+.wiki-source-icon {
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.wiki-source-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.wiki-source-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #8B6FA8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.wiki-source-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6C3483;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ─── Dark mode ─── */
 [data-theme="dark"] {
   --hot-pink: #FF69B4;
@@ -852,6 +900,23 @@ html, body {
   background: var(--hot-pink);
   border-color: var(--hot-pink);
   color: #fff;
+}
+
+[data-theme="dark"] .wiki-source {
+  background: linear-gradient(135deg, #2D2840, #352D48);
+  border-color: rgba(155, 89, 182, 0.3);
+}
+
+[data-theme="dark"] .wiki-source:hover {
+  background: linear-gradient(135deg, #352D48, #3D3555);
+}
+
+[data-theme="dark"] .wiki-source-label {
+  color: #C4A0E0;
+}
+
+[data-theme="dark"] .wiki-source-title {
+  color: #D8B4FE;
 }
 
 [data-theme="dark"] .tab-bar {

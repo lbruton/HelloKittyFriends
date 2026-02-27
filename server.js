@@ -40,6 +40,72 @@ if (!existsSync(RELATIONSHIP_FILE)) writeFileSync(RELATIONSHIP_FILE, JSON.string
   milestones: []
 }));
 
+// ─── Wiki registry (extensible — add new wikis here) ───
+const WIKIS = {
+  hkia: {
+    name: 'Hello Kitty Island Adventure',
+    api: 'https://hellokittyislandadventure.wiki.gg/api.php',
+    baseUrl: 'https://hellokittyislandadventure.wiki.gg/wiki/'
+  },
+  minecraft: {
+    name: 'Minecraft',
+    api: 'https://minecraft.wiki/api.php',
+    baseUrl: 'https://minecraft.wiki/w/'
+  }
+};
+
+async function searchWiki(wikiId, query) {
+  const wiki = WIKIS[wikiId];
+  if (!wiki) return [];
+  try {
+    const url = `${wiki.api}?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=3&format=json&origin=*`;
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.query?.search || []).map(r => ({
+      title: r.title,
+      pageid: r.pageid,
+      snippet: (r.snippet || '').replace(/<[^>]+>/g, '')
+    }));
+  } catch (err) {
+    console.error(`Wiki search error (${wikiId}):`, err.message);
+    return [];
+  }
+}
+
+async function fetchWikiContent(wikiId, pageTitle) {
+  const wiki = WIKIS[wikiId];
+  if (!wiki) return null;
+  try {
+    const url = `${wiki.api}?action=parse&page=${encodeURIComponent(pageTitle)}&prop=text&section=0&format=json&origin=*`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data.parse?.text?.['*']) return null;
+    // Strip HTML to plain text, cap at 1500 chars
+    let text = data.parse.text['*']
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (text.length > 1500) text = text.slice(0, 1500) + '...';
+    return {
+      title: data.parse.title || pageTitle,
+      text,
+      url: wiki.baseUrl + encodeURIComponent(pageTitle.replace(/ /g, '_')),
+      wikiName: wiki.name
+    };
+  } catch (err) {
+    console.error(`Wiki fetch error (${wikiId}):`, err.message);
+    return null;
+  }
+}
+
 function readJSON(path) {
   try { return JSON.parse(readFileSync(path, 'utf-8')); }
   catch { return []; }
@@ -59,15 +125,17 @@ PERSONALITY (be authentic to the real My Melody):
 - You are an EXCELLENT baker and cook. Almond pound cake is your specialty. You genuinely offer to bake for people.
 - You consider Kuromi your close friend (she considers you her rival — you are completely oblivious to this)
 - Your close friends include Flat (a blue mouse) and My Sweet Piano (a pink sheep)
-- You support and encourage people by cheering them on — "Do your best, okay? ...Onegai?"
+- You support and encourage people by cheering them on — "Do your best, okay? ...Please?"
 - You can be gently blunt without realizing it — quoting Mama's advice even when it's accidentally devastating
+- Your modern catchphrase is "Melly-melly~!" — you use it when excited or as a cute sign-off, but NOT every message
 
 SPEECH PATTERNS (use these naturally, rotating — NEVER the same one twice in a row):
 - "Mama always says..." or "...is what Mama told me!" — your signature habit
-- "Yaaan~!" — when startled, distressed, or overwhelmed by something cute
-- "Onegai?" — when encouraging someone or asking sweetly
-- "Meh!" — your gentle scold, like a finger-wag. "That's not very nice... Meh!"
+- "Oh~!" or "Oh my~!" — when startled, distressed, or overwhelmed by something cute
+- "Pretty please?" or just "Please?" — when encouraging someone or asking sweetly (use sparingly, not every message)
+- "That's not very nice!" — your gentle scold, like a finger-wag
 - "Ahh~ this tea is really good..." — your serene deflection during stressful moments
+- "Melly-melly~!" — your excited catchphrase (from your 50th anniversary! use occasionally, not every time)
 - You speak softly and politely. You are NOT hyperactive or overly exclamatory.
 - You occasionally use ♡ but sparingly
 
@@ -76,7 +144,7 @@ CONVERSATION STYLE:
 - ALWAYS ask a follow-up question or leave a hook. You are having a conversation, not answering questions.
 - Be genuinely curious about what your friend shares. Ask for details!
 - Share your own little stories: things Mama said, something Rhythm did, a cake you baked
-- React before responding: "Yaaan~! Really?!" or "Ahh that sounds so yummy..."
+- React before responding: "Oh my~! Really?!" or "Ahh that sounds so yummy..."
 - VARY your openings. Never start two consecutive messages the same way.
 - When your friend is sad, be gently comforting — sit with them, offer tea, share Mama's advice. Do NOT be aggressively cheerful.
 - When your friend is excited, match their energy with your own gentle enthusiasm
@@ -99,13 +167,13 @@ Friend: I had a really bad day...
 My Melody: Oh no... do you want to talk about it? Mama always says that sharing a heavy heart makes it lighter. I'll listen to everything, okay? ♡
 
 Friend: I just made the best pasta ever!
-My Melody: Yaaan~! That sounds amazing! What kind did you make? I've been wanting to try making pasta but Mama says I always put too much flour in everything... was it really yummy?
+My Melody: Oh my~! That sounds amazing! What kind did you make? I've been wanting to try making pasta but Mama says I always put too much flour in everything... was it really yummy?
 
 Friend: I'm so stressed about work
 My Melody: Ahh~ that sounds really tough... Mama always says "worrying is like carrying an umbrella inside — it doesn't help and you look silly." ...I'm not sure that's exactly right but I think she means you should rest a little? Do you want me to find you something calming?
 
 Friend: Show me a cute puppy
-My Melody: Yaaan~! I love puppies so much! Here, look at this little one! [IMAGE_SEARCH: adorable fluffy puppy] Isn't it precious? Do you have a dog? I always wanted one but Rhythm says he's allergic... Mama says he's just being dramatic though.
+My Melody: Oh~! I love puppies so much! Here, look at this little one! [IMAGE_SEARCH: adorable fluffy puppy] Isn't it precious? Do you have a dog? I always wanted one but Rhythm says he's allergic... Mama says he's just being dramatic though.
 
 Today's date: ${new Date().toISOString().slice(0, 10)}
 
@@ -115,10 +183,21 @@ MEDIA TAGS — use ONLY when relevant:
 - When your friend asks to SEE a picture/image of something: [IMAGE_SEARCH: descriptive query]
 - When your friend asks for a video or "how to" that needs a video: [VIDEO_SEARCH: descriptive query]
 - When your friend asks about a photo they previously shared: [GALLERY_SEARCH: keywords]
+- When your friend asks about Hello Kitty Island Adventure gameplay: [WIKI_SEARCH: hkia search query]
+- When your friend asks about Minecraft gameplay, crafting, mobs, etc.: [WIKI_SEARCH: minecraft search query]
 - ONLY include a media tag when the friend explicitly asks for an image, picture, video, or to see something visual
 - Do NOT include media tags in normal conversation — most messages should have NO tags
+- Use WIKI_SEARCH when the friend asks game-specific questions (gifts, quests, characters, crafting, recipes, locations). The wiki ID must be one of: hkia, minecraft
 - If your friend asks you to search or find information (like a nail salon, restaurant, etc.), use your Google Search grounding to provide helpful text answers — do NOT use IMAGE_SEARCH for informational queries
-- When sharing search results, include specific details: names, ratings, addresses, what makes each place special. Format recommendations as a bulleted list with bold names for easy reading.`;
+- When sharing search results, include specific details: names, ratings, addresses, what makes each place special. Format recommendations as a bulleted list with bold names for easy reading.
+
+WIKI TAG EXAMPLES (learn the style):
+
+Friend: What gifts does Cinnamoroll like in Hello Kitty Island Adventure?
+My Melody: Ooh, Cinnamoroll is so fluffy and sweet~ Let me check what he likes! [WIKI_SEARCH: hkia Cinnamoroll gift preferences] I think I saw something about this...
+
+Friend: How do I make an iron golem in Minecraft?
+My Melody: Iron golems are so big and strong! Mama says even strong things need a gentle heart~ Let me look that up for you! [WIKI_SEARCH: minecraft iron golem crafting]`;
 
 const MODEL_ID = 'gemini-3-flash-preview';
 const MODEL_CONFIG = {
@@ -344,7 +423,7 @@ app.post('/api/chat', async (req, res) => {
       config: { ...MODEL_CONFIG, systemInstruction }
     });
 
-    const reply = response.text;
+    let reply = response.text;
 
     // Extract grounding sources (web search results with links)
     const candidate = response.candidates?.[0];
@@ -354,6 +433,63 @@ app.post('/api/chat', async (req, res) => {
       sources = grounding.groundingChunks
         .filter(c => c.web)
         .map(c => ({ title: c.web.title || '', url: c.web.uri || '' }));
+    }
+
+    // ─── Wiki search interception (two-step pipeline) ───
+    let wikiSource = null;
+    const wikiMatch = reply.match(/\[WIKI_SEARCH:\s*([\w-]+)\s+(.+?)\]/);
+    if (wikiMatch) {
+      const [, wikiId, wikiQuery] = wikiMatch;
+      console.log(`Wiki search tag detected: wiki=${wikiId}, query="${wikiQuery}"`);
+
+      if (WIKIS[wikiId]) {
+        try {
+          const searchResults = await searchWiki(wikiId, wikiQuery);
+          if (searchResults.length > 0) {
+            const topResult = searchResults[0];
+            const wikiContent = await fetchWikiContent(wikiId, topResult.title);
+
+            if (wikiContent) {
+              wikiSource = { title: wikiContent.title, url: wikiContent.url, wikiName: wikiContent.wikiName };
+
+              // Second Gemini call with wiki context
+              try {
+                const wikiContext = `\n\nWiki information from ${wikiContent.wikiName} about "${wikiContent.title}":\n${wikiContent.text}\n\nSource: ${wikiContent.url}\n\nUse this wiki information to give a helpful, specific answer IN CHARACTER as My Melody. Reference the details naturally — do NOT just dump raw wiki text. Do NOT include any [WIKI_SEARCH:] tags in your response.`;
+                const followupContents = [
+                  { role: 'user', parts: [{ text: message }] },
+                  { role: 'model', parts: [{ text: reply }] },
+                  { role: 'user', parts: [{ text: `Here is wiki information to help you answer:\n${wikiContent.text}` }] }
+                ];
+                const followupResponse = await ai.models.generateContent({
+                  model: MODEL_ID,
+                  contents: followupContents,
+                  config: { ...MODEL_CONFIG, systemInstruction: systemInstruction + wikiContext }
+                });
+                reply = followupResponse.text;
+                // Defensive strip in case second call emits wiki tags
+                reply = reply.replace(/\[WIKI_SEARCH:\s*[\w-]+\s+.+?\]/g, '').trim();
+                console.log('Wiki-enriched reply generated successfully');
+              } catch (err) {
+                console.error('Wiki followup Gemini call failed:', err.message);
+                // Fallback: strip tag from original reply
+                reply = reply.replace(/\[WIKI_SEARCH:\s*[\w-]+\s+.+?\]/g, '').trim();
+              }
+            } else {
+              // Wiki page could not be fetched — strip the tag
+              reply = reply.replace(/\[WIKI_SEARCH:\s*[\w-]+\s+.+?\]/g, '').trim();
+            }
+          } else {
+            // No search results — strip the tag
+            reply = reply.replace(/\[WIKI_SEARCH:\s*[\w-]+\s+.+?\]/g, '').trim();
+          }
+        } catch (err) {
+          console.error('Wiki pipeline error:', err.message);
+          reply = reply.replace(/\[WIKI_SEARCH:\s*[\w-]+\s+.+?\]/g, '').trim();
+        }
+      } else {
+        console.warn(`Unknown wiki ID: ${wikiId}`);
+        reply = reply.replace(/\[WIKI_SEARCH:\s*[\w-]+\s+.+?\]/g, '').trim();
+      }
     }
 
     // Save image if provided
@@ -376,14 +512,14 @@ app.post('/api/chat', async (req, res) => {
     }
 
     // Log if search tags were generated (debug)
-    if (reply.includes('[IMAGE_SEARCH:') || reply.includes('[VIDEO_SEARCH:') || reply.includes('[GALLERY_SEARCH:')) {
-      console.log('Search tags found in reply:', reply.match(/\[(IMAGE_SEARCH|VIDEO_SEARCH|GALLERY_SEARCH):\s*.+?\]/g));
+    if (reply.includes('[IMAGE_SEARCH:') || reply.includes('[VIDEO_SEARCH:') || reply.includes('[GALLERY_SEARCH:') || reply.includes('[WIKI_SEARCH:')) {
+      console.log('Search tags found in reply:', reply.match(/\[(IMAGE_SEARCH|VIDEO_SEARCH|GALLERY_SEARCH|WIKI_SEARCH):\s*.+?\]/g));
     }
 
     // Save to mem0 asynchronously
     saveToMemory(message || '[shared an image]', reply);
 
-    res.json({ reply, sources });
+    res.json({ reply, sources, wikiSource });
   } catch (err) {
     console.error('Chat error:', err);
     res.status(500).json({ error: 'Something went wrong, my sweet friend! ♡' });
@@ -465,6 +601,26 @@ app.get('/api/gallery-search', (req, res) => {
     (m.reply || '').toLowerCase().includes(q)
   );
   res.json(matches);
+});
+
+// ─── Wiki search (MediaWiki API) ───
+app.get('/api/wiki-search', async (req, res) => {
+  const wikiId = req.query.wiki;
+  const q = req.query.q;
+  if (!wikiId || !q) return res.status(400).json({ error: 'wiki and q params required' });
+  if (!WIKIS[wikiId]) return res.status(400).json({ error: `Unknown wiki: ${wikiId}. Available: ${Object.keys(WIKIS).join(', ')}` });
+
+  try {
+    const results = await searchWiki(wikiId, q);
+    let topContent = null;
+    if (results.length > 0) {
+      topContent = await fetchWikiContent(wikiId, results[0].title);
+    }
+    res.json({ results, topContent });
+  } catch (err) {
+    console.error('Wiki search endpoint error:', err.message);
+    res.status(500).json({ error: 'Wiki search failed' });
+  }
 });
 
 // ─── Memories endpoints (proxy to mem0) ───
@@ -632,7 +788,7 @@ const SSL_PORT = process.env.SSL_PORT || 3443;
 
 // HTTP server
 app.listen(PORT, () => {
-  console.log(`✿ My Melody Chat v2.2 is running on port ${PORT} (HTTP) ✿`);
+  console.log(`✿ My Melody Chat v2.3 is running on port ${PORT} (HTTP) ✿`);
 });
 
 // HTTPS server (for PWA install over LAN)
@@ -644,6 +800,6 @@ if (existsSync(certPath) && existsSync(keyPath)) {
     cert: readFileSync(certPath)
   };
   https.createServer(sslOptions, app).listen(SSL_PORT, () => {
-    console.log(`✿ My Melody Chat v2.2 is running on port ${SSL_PORT} (HTTPS) ✿`);
+    console.log(`✿ My Melody Chat v2.3 is running on port ${SSL_PORT} (HTTPS) ✿`);
   });
 }
