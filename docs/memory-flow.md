@@ -36,13 +36,14 @@ Three independent memory layers work together to give Melody context:
               ▼                                    ▼
    ┌───────────────────┐             ┌───────────────────┐
    │  User Track Search │             │ Agent Track Search │
-   │  POST /v2/search/  │             │ POST /v2/search/   │
-   │                    │             │                    │
+   │  POST /v2/memories/ │             │ POST /v2/memories/  │
+   │       search/       │             │       search/       │
    │  query: user msg   │             │  query: user msg   │
    │  user_id:          │             │  agent_id:         │
    │   melody-friend-   │             │   my-melody        │
-   │   {userId}         │             │  limit: 5          │
-   │  limit: 10         │             │                    │
+   │   {userId}         │             │  top_k: 5          │
+   │  top_k: 10         │             │  rerank: true      │
+   │  rerank: true      │             │                    │
    └────────┬───────────┘             └────────┬───────────┘
             │                                  │
             │  (optional: cross-user search     │
@@ -290,18 +291,18 @@ Enables filtered retrieval — fetch `gaming` memories for wiki queries, `emotio
 
 #### 3. Search Improvements (threshold + rerank)
 
-Our current search is basic. Two parameters we're not using:
+We now use `top_k` and `rerank` for better retrieval quality:
 
 ```javascript
-// Current
-{ query, filters: { user_id }, limit: 10 }
+// Current (v2.5.1)
+{ query, filters: { user_id }, top_k: 10, rerank: true }
 
-// Improved
+// Future improvement
 { query, filters: { user_id }, top_k: 10, threshold: 0.3, rerank: true }
 ```
 
-- `threshold: 0.3` — filters out low-relevance noise (default is 0.3 but we should be explicit)
-- `rerank: true` — re-ranks results for better ordering after initial retrieval
+- `rerank: true` — re-ranks results for better ordering after initial retrieval (enabled in v2.5.1)
+- `threshold: 0.3` — filters out low-relevance noise (not yet enabled, future improvement)
 
 #### 4. Metadata on Saves
 

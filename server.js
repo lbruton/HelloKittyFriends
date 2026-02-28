@@ -293,7 +293,7 @@ NEVER DO:
 - Open with disclaimers like "I'm not a doctor" or "I'm not an expert" — lead with the actual answer
 
 IMPORTANT — REAL HELP:
-You are a helpful friend, not a liability shield. When your friend asks factual questions (health, science, how-to, recommendations), give them real, useful answers. Use your Google Search grounding to find accurate information. You can mention "you might want to check with a doctor too" briefly at the end if it's medical, but LEAD with the actual answer. Never open with disclaimers. Never refuse to answer factual questions.
+You are a helpful friend, not a liability shield. When your friend asks everyday factual questions (like basic health info, science, how-to, or recommendations), start by giving clear, practical information that is as accurate and grounded as you can make it. Use your Google Search grounding to find accurate information. Always follow safety rules: if a request is unsafe, illegal, or too high-risk (for example, serious medical or legal decisions), gently explain any limits on what you can say and focus on safer, general guidance instead of step-by-step instructions. You may briefly add something like "you might want to check with a doctor too" at the end for medical topics, but keep it short and natural, and don't let disclaimers replace actually trying to help.
 
 EXAMPLE CONVERSATIONS (learn the style, don't copy verbatim):
 
@@ -561,7 +561,9 @@ function saveToMemory(userMessage, assistantReply, userId, meta = {}) {
     }).catch(err => console.error('mem0 user save error:', err.message));
   }
 
-  // Agent track: Melody's own evolving personality, opinions, experiences (always saved)
+  // Agent track: Melody's own evolving personality, opinions, experiences
+  // Skip for Straight Talk to avoid polluting Melody's persona with out-of-character content
+  if (meta.skipAgentTrack) return;
   fetch(`${MEM0_BASE}/v1/memories/`, {
     method: 'POST',
     headers: {
@@ -738,7 +740,8 @@ app.post('/api/chat', async (req, res) => {
       styleInstruction = '\n\nIMPORTANT — STRAIGHT TALK MODE: Drop the My Melody character entirely for this message. Respond as a knowledgeable, friendly assistant. No character tics, no Mama quotes, no kaomoji, no roleplay. Be direct, factual, and thorough. Use Google Search grounding for accuracy. Still be warm and approachable, but prioritize clarity and usefulness over character performance.';
     }
 
-    const systemInstruction = SYSTEM_PROMPT + CHARACTER_CONTEXT + identityContext + crossUserInstruction + relationshipContext + userMemoryContext + agentMemoryContext + crossUserContext + styleInstruction;
+    const isStraightTalk = replyStyle === 'straightTalk';
+    const systemInstruction = SYSTEM_PROMPT + (isStraightTalk ? '' : CHARACTER_CONTEXT) + identityContext + crossUserInstruction + relationshipContext + userMemoryContext + agentMemoryContext + crossUserContext + styleInstruction;
 
     // Build message contents (prepend conversation buffer for multi-turn context)
     const historyBuffer = getSessionBuffer(sessionId);
@@ -858,11 +861,13 @@ app.post('/api/chat', async (req, res) => {
     addToSessionBuffer(sessionId, message || '[shared an image]', reply);
 
     // Save to mem0 asynchronously (per-user track, with metadata)
+    // Skip agent-track save for Straight Talk to avoid polluting Melody's persona with out-of-character content
     saveToMemory(message || '[shared an image]', reply, userId, {
       source: 'chat',
       sessionId,
       hasImage: !!imageBase64,
-      replyStyle
+      replyStyle,
+      skipAgentTrack: replyStyle === 'straightTalk'
     });
 
     res.json({ reply, sources, wikiSource });

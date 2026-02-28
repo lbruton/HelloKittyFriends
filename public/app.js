@@ -5,7 +5,7 @@
  * PWA install prompt, settings, and first-time welcome flow.
  * No framework — vanilla JavaScript with DOM manipulation.
  *
- * @version 2.5.0
+ * @version 2.5.1
  */
 
 // ─── DOM refs ───
