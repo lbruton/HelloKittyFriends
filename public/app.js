@@ -545,6 +545,27 @@ async function processReply(text, sources, wikiSource) {
   const gallerySearchMatch = text.match(/\[GALLERY_SEARCH:\s*(.+?)\]/);
   const reactionMatch = text.match(/\[REACTION:\s*(\w+)\]/);
 
+  // Parse new API tags
+  const dogPicMatch = text.match(/\[DOG_PIC:\s*(.+?)\]/);
+  const randomDogMatch = text.match(/\[RANDOM_DOG\]/);
+  const catPicMatch = text.match(/\[CAT_PIC\]/);
+  const catFactMatch = text.match(/\[CAT_FACT\]/);
+  const foxPicMatch = text.match(/\[FOX_PIC\]/);
+  const cocktailMatch = text.match(/\[COCKTAIL:\s*(.+?)\]/);
+  const randomCocktailMatch = text.match(/\[RANDOM_COCKTAIL\]/);
+  const recipeMatch = text.match(/\[RECIPE:\s*(.+?)\]/);
+  const randomRecipeMatch = text.match(/\[RANDOM_RECIPE\]/);
+  const coffeePicMatch = text.match(/\[COFFEE_PIC\]/);
+  const adviceMatch = text.match(/\[ADVICE\]/);
+  const weatherMatch = text.match(/\[WEATHER:\s*(.+?)\]/);
+  const musicSearchMatch = text.match(/\[MUSIC_SEARCH:\s*(.+?)\]/);
+  const dadJokeMatch = text.match(/\[DAD_JOKE\]/);
+  const triviaMatch = text.match(/\[TRIVIA(?::\s*(.+?))?\]/);
+  const insultMatch = text.match(/\[INSULT\]/);
+  const spacePicMatch = text.match(/\[SPACE_PIC\]/);
+  const funFactMatch = text.match(/\[FUN_FACT\]/);
+  const quoteMatch = text.match(/\[QUOTE\]/);
+
   // Clean tags from display text
   let displayText = text
     .replace(/\[IMAGE_SEARCH:\s*.+?\]/g, '')
@@ -552,6 +573,25 @@ async function processReply(text, sources, wikiSource) {
     .replace(/\[GALLERY_SEARCH:\s*.+?\]/g, '')
     .replace(/\[WIKI_SEARCH:\s*.+?\]/g, '')
     .replace(/\[REACTION:\s*\w+\]/g, '')
+    .replace(/\[DOG_PIC:\s*.+?\]/g, '')
+    .replace(/\[RANDOM_DOG\]/g, '')
+    .replace(/\[CAT_PIC\]/g, '')
+    .replace(/\[CAT_FACT\]/g, '')
+    .replace(/\[FOX_PIC\]/g, '')
+    .replace(/\[COCKTAIL:\s*.+?\]/g, '')
+    .replace(/\[RANDOM_COCKTAIL\]/g, '')
+    .replace(/\[RECIPE:\s*.+?\]/g, '')
+    .replace(/\[RANDOM_RECIPE\]/g, '')
+    .replace(/\[COFFEE_PIC\]/g, '')
+    .replace(/\[ADVICE\]/g, '')
+    .replace(/\[WEATHER:\s*.+?\]/g, '')
+    .replace(/\[MUSIC_SEARCH:\s*.+?\]/g, '')
+    .replace(/\[DAD_JOKE\]/g, '')
+    .replace(/\[TRIVIA(?::\s*.+?)?\]/g, '')
+    .replace(/\[INSULT\]/g, '')
+    .replace(/\[SPACE_PIC\]/g, '')
+    .replace(/\[FUN_FACT\]/g, '')
+    .replace(/\[QUOTE\]/g, '')
     .trim();
 
   let searchImageUrl = null;
@@ -617,6 +657,473 @@ async function processReply(text, sources, wikiSource) {
           }
         })
         .catch(() => { /* silently skip */ });
+    }
+  }
+
+  // ─── New API Tag Processing ───
+  // Append cards to the last message bubble (non-blocking, silent failures)
+  const lastBubble = chatArea.querySelector('.message.assistant:last-child .message-bubble');
+  if (lastBubble) {
+    // Dog pic
+    if (dogPicMatch || randomDogMatch) {
+      const breed = dogPicMatch ? dogPicMatch[1].trim() : '';
+      const url = breed ? `/api/dog-pic?breed=${encodeURIComponent(breed)}` : '/api/dog-pic';
+      fetch(url).then(r => r.json()).then(data => {
+        if (data.imageUrl) {
+          const card = document.createElement('div');
+          card.className = 'api-card image-card';
+          const img = document.createElement('img');
+          img.src = data.imageUrl;
+          img.alt = data.breed || 'Dog';
+          img.addEventListener('error', () => card.remove());
+          card.appendChild(img);
+          if (data.breed) {
+            const cap = document.createElement('span');
+            cap.className = 'api-card-caption';
+            cap.textContent = data.breed;
+            card.appendChild(cap);
+          }
+          lastBubble.appendChild(card);
+          chatArea.scrollTop = chatArea.scrollHeight;
+        }
+      }).catch(() => {});
+    }
+
+    // Cat pic
+    if (catPicMatch) {
+      fetch('/api/cat-pic').then(r => r.json()).then(data => {
+        if (data.imageUrl) {
+          const card = document.createElement('div');
+          card.className = 'api-card image-card';
+          const img = document.createElement('img');
+          img.src = data.imageUrl;
+          img.alt = 'Cat';
+          img.addEventListener('error', () => card.remove());
+          card.appendChild(img);
+          lastBubble.appendChild(card);
+          chatArea.scrollTop = chatArea.scrollHeight;
+        }
+      }).catch(() => {});
+    }
+
+    // Cat fact
+    if (catFactMatch) {
+      fetch('/api/cat-fact').then(r => r.json()).then(data => {
+        if (data.fact) {
+          const card = document.createElement('div');
+          card.className = 'api-card fact-card';
+          const icon = document.createElement('div');
+          icon.className = 'fact-icon';
+          icon.textContent = '\u{1F431}';
+          const txt = document.createElement('div');
+          txt.className = 'fact-text';
+          txt.textContent = data.fact;
+          card.appendChild(icon);
+          card.appendChild(txt);
+          lastBubble.appendChild(card);
+          chatArea.scrollTop = chatArea.scrollHeight;
+        }
+      }).catch(() => {});
+    }
+
+    // Fox pic
+    if (foxPicMatch) {
+      fetch('/api/fox-pic').then(r => r.json()).then(data => {
+        if (data.imageUrl) {
+          const card = document.createElement('div');
+          card.className = 'api-card image-card';
+          const img = document.createElement('img');
+          img.src = data.imageUrl;
+          img.alt = 'Fox';
+          img.addEventListener('error', () => card.remove());
+          card.appendChild(img);
+          lastBubble.appendChild(card);
+          chatArea.scrollTop = chatArea.scrollHeight;
+        }
+      }).catch(() => {});
+    }
+
+    // Cocktail
+    if (cocktailMatch || randomCocktailMatch) {
+      const query = cocktailMatch ? cocktailMatch[1].trim() : '';
+      const url = query ? `/api/cocktail?s=${encodeURIComponent(query)}` : '/api/cocktail';
+      fetch(url).then(r => r.json()).then(data => {
+        if (data.name) {
+          const card = document.createElement('div');
+          card.className = 'api-card recipe-card';
+          if (data.imageUrl) {
+            const img = document.createElement('img');
+            img.src = data.imageUrl;
+            img.alt = data.name;
+            img.className = 'recipe-card-img';
+            img.addEventListener('error', () => img.remove());
+            card.appendChild(img);
+          }
+          const body = document.createElement('div');
+          body.className = 'recipe-card-body';
+          const title = document.createElement('div');
+          title.className = 'recipe-card-title';
+          title.textContent = data.name;
+          body.appendChild(title);
+          const meta = document.createElement('div');
+          meta.className = 'recipe-card-meta';
+          meta.textContent = [data.category, data.glass].filter(Boolean).join(' \u2022 ');
+          body.appendChild(meta);
+          if (data.ingredients && data.ingredients.length) {
+            const ingDiv = document.createElement('div');
+            ingDiv.className = 'recipe-card-ingredients';
+            const strong = document.createElement('strong');
+            strong.textContent = 'Ingredients:';
+            ingDiv.appendChild(strong);
+            const ul = document.createElement('ul');
+            data.ingredients.forEach(ing => {
+              const li = document.createElement('li');
+              li.textContent = ing;
+              ul.appendChild(li);
+            });
+            ingDiv.appendChild(ul);
+            body.appendChild(ingDiv);
+          }
+          card.appendChild(body);
+          lastBubble.appendChild(card);
+          chatArea.scrollTop = chatArea.scrollHeight;
+        }
+      }).catch(() => {});
+    }
+
+    // Recipe
+    if (recipeMatch || randomRecipeMatch) {
+      const query = recipeMatch ? recipeMatch[1].trim() : '';
+      const url = query ? `/api/recipe?s=${encodeURIComponent(query)}` : '/api/recipe';
+      fetch(url).then(r => r.json()).then(data => {
+        if (data.name) {
+          const card = document.createElement('div');
+          card.className = 'api-card recipe-card';
+          if (data.imageUrl) {
+            const img = document.createElement('img');
+            img.src = data.imageUrl;
+            img.alt = data.name;
+            img.className = 'recipe-card-img';
+            img.addEventListener('error', () => img.remove());
+            card.appendChild(img);
+          }
+          const body = document.createElement('div');
+          body.className = 'recipe-card-body';
+          const title = document.createElement('div');
+          title.className = 'recipe-card-title';
+          title.textContent = data.name;
+          body.appendChild(title);
+          const meta = document.createElement('div');
+          meta.className = 'recipe-card-meta';
+          meta.textContent = [data.category, data.area].filter(Boolean).join(' \u2022 ');
+          body.appendChild(meta);
+          if (data.ingredients && data.ingredients.length) {
+            const ingDiv = document.createElement('div');
+            ingDiv.className = 'recipe-card-ingredients';
+            const strong = document.createElement('strong');
+            strong.textContent = 'Ingredients:';
+            ingDiv.appendChild(strong);
+            const ul = document.createElement('ul');
+            data.ingredients.forEach(ing => {
+              const li = document.createElement('li');
+              li.textContent = ing;
+              ul.appendChild(li);
+            });
+            ingDiv.appendChild(ul);
+            body.appendChild(ingDiv);
+          }
+          card.appendChild(body);
+          lastBubble.appendChild(card);
+          chatArea.scrollTop = chatArea.scrollHeight;
+        }
+      }).catch(() => {});
+    }
+
+    // Coffee pic
+    if (coffeePicMatch) {
+      fetch('/api/coffee-pic').then(r => r.json()).then(data => {
+        if (data.imageUrl) {
+          const card = document.createElement('div');
+          card.className = 'api-card image-card';
+          const img = document.createElement('img');
+          img.src = data.imageUrl;
+          img.alt = 'Coffee';
+          img.addEventListener('error', () => card.remove());
+          card.appendChild(img);
+          const cap = document.createElement('span');
+          cap.className = 'api-card-caption';
+          cap.textContent = 'Coffee';
+          card.appendChild(cap);
+          lastBubble.appendChild(card);
+          chatArea.scrollTop = chatArea.scrollHeight;
+        }
+      }).catch(() => {});
+    }
+
+    // Advice
+    if (adviceMatch) {
+      fetch('/api/advice').then(r => r.json()).then(data => {
+        if (data.advice) {
+          const card = document.createElement('div');
+          card.className = 'api-card fact-card';
+          const icon = document.createElement('div');
+          icon.className = 'fact-icon';
+          icon.textContent = '\u{1F4A1}';
+          const txt = document.createElement('div');
+          txt.className = 'fact-text';
+          txt.textContent = data.advice;
+          card.appendChild(icon);
+          card.appendChild(txt);
+          lastBubble.appendChild(card);
+          chatArea.scrollTop = chatArea.scrollHeight;
+        }
+      }).catch(() => {});
+    }
+
+    // Weather
+    if (weatherMatch) {
+      const location = weatherMatch[1].trim();
+      fetch(`/api/weather?location=${encodeURIComponent(location)}`).then(r => r.json()).then(data => {
+        if (data.temp !== undefined) {
+          const card = document.createElement('div');
+          card.className = 'api-card weather-card';
+          const temp = document.createElement('div');
+          temp.className = 'weather-card-temp';
+          temp.textContent = `${data.temp}\u00B0${data.unit || 'F'}`;
+          card.appendChild(temp);
+          const desc = document.createElement('div');
+          desc.className = 'weather-card-desc';
+          desc.textContent = data.description || '';
+          card.appendChild(desc);
+          const loc = document.createElement('div');
+          loc.className = 'weather-card-location';
+          loc.textContent = data.location || location;
+          card.appendChild(loc);
+          const details = document.createElement('div');
+          details.className = 'weather-card-details';
+          const parts = [];
+          if (data.wind) parts.push(`Wind: ${data.wind}`);
+          if (data.humidity) parts.push(`Humidity: ${data.humidity}%`);
+          details.textContent = parts.join(' \u2022 ');
+          card.appendChild(details);
+          lastBubble.appendChild(card);
+          chatArea.scrollTop = chatArea.scrollHeight;
+        }
+      }).catch(() => {});
+    }
+
+    // Music search
+    if (musicSearchMatch) {
+      const query = musicSearchMatch[1].trim();
+      fetch(`/api/music-search?q=${encodeURIComponent(query)}`).then(r => r.json()).then(tracks => {
+        const items = Array.isArray(tracks) ? tracks.slice(0, 3) : [];
+        items.forEach(track => {
+          const card = document.createElement('div');
+          card.className = 'api-card music-card';
+          if (track.albumArt) {
+            const art = document.createElement('img');
+            art.src = track.albumArt;
+            art.alt = track.album || track.title || 'Album';
+            art.className = 'music-card-art';
+            art.addEventListener('error', () => art.remove());
+            card.appendChild(art);
+          }
+          const info = document.createElement('div');
+          info.className = 'music-card-info';
+          const title = document.createElement('div');
+          title.className = 'music-card-title';
+          title.textContent = track.title || 'Unknown Track';
+          info.appendChild(title);
+          const artist = document.createElement('div');
+          artist.className = 'music-card-artist';
+          artist.textContent = track.artist || 'Unknown Artist';
+          info.appendChild(artist);
+          if (track.album) {
+            const album = document.createElement('div');
+            album.className = 'music-card-album';
+            album.textContent = track.album;
+            info.appendChild(album);
+          }
+          card.appendChild(info);
+          if (track.previewUrl) {
+            const audio = document.createElement('audio');
+            audio.controls = true;
+            audio.src = track.previewUrl;
+            audio.className = 'music-card-audio';
+            card.appendChild(audio);
+          }
+          lastBubble.appendChild(card);
+        });
+        chatArea.scrollTop = chatArea.scrollHeight;
+      }).catch(() => {});
+    }
+
+    // Dad joke
+    if (dadJokeMatch) {
+      fetch('/api/dad-joke').then(r => r.json()).then(data => {
+        if (data.joke) {
+          const card = document.createElement('div');
+          card.className = 'api-card fact-card';
+          const icon = document.createElement('div');
+          icon.className = 'fact-icon';
+          icon.textContent = '\u{1F602}';
+          const txt = document.createElement('div');
+          txt.className = 'fact-text';
+          txt.textContent = data.joke;
+          card.appendChild(icon);
+          card.appendChild(txt);
+          lastBubble.appendChild(card);
+          chatArea.scrollTop = chatArea.scrollHeight;
+        }
+      }).catch(() => {});
+    }
+
+    // Trivia
+    if (triviaMatch) {
+      const category = triviaMatch[1] ? triviaMatch[1].trim() : '';
+      const url = category ? `/api/trivia?category=${encodeURIComponent(category)}` : '/api/trivia';
+      fetch(url).then(r => r.json()).then(data => {
+        if (data.question) {
+          const card = document.createElement('div');
+          card.className = 'api-card trivia-card';
+          const question = document.createElement('div');
+          question.className = 'trivia-question';
+          question.textContent = data.question;
+          card.appendChild(question);
+          const answersDiv = document.createElement('div');
+          answersDiv.className = 'trivia-answers';
+          // Combine and shuffle answers
+          const allAnswers = [
+            { text: data.correctAnswer, correct: true },
+            ...(data.incorrectAnswers || []).map(a => ({ text: a, correct: false }))
+          ];
+          // Fisher-Yates shuffle
+          for (let i = allAnswers.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [allAnswers[i], allAnswers[j]] = [allAnswers[j], allAnswers[i]];
+          }
+          allAnswers.forEach(answer => {
+            const btn = document.createElement('button');
+            btn.className = 'trivia-answer';
+            btn.textContent = answer.text;
+            btn.dataset.correct = answer.correct ? 'true' : 'false';
+            btn.addEventListener('click', () => {
+              // Disable all buttons
+              answersDiv.querySelectorAll('.trivia-answer').forEach(b => {
+                b.disabled = true;
+                if (b.dataset.correct === 'true') b.classList.add('correct');
+              });
+              if (!answer.correct) btn.classList.add('wrong');
+            });
+            answersDiv.appendChild(btn);
+          });
+          card.appendChild(answersDiv);
+          lastBubble.appendChild(card);
+          chatArea.scrollTop = chatArea.scrollHeight;
+        }
+      }).catch(() => {});
+    }
+
+    // Insult
+    if (insultMatch) {
+      fetch('/api/insult').then(r => r.json()).then(data => {
+        if (data.insult) {
+          const card = document.createElement('div');
+          card.className = 'api-card fact-card';
+          const icon = document.createElement('div');
+          icon.className = 'fact-icon';
+          icon.textContent = '\u{1F608}';
+          const txt = document.createElement('div');
+          txt.className = 'fact-text';
+          txt.textContent = data.insult;
+          card.appendChild(icon);
+          card.appendChild(txt);
+          lastBubble.appendChild(card);
+          chatArea.scrollTop = chatArea.scrollHeight;
+        }
+      }).catch(() => {});
+    }
+
+    // Space pic (NASA APOD)
+    if (spacePicMatch) {
+      fetch('/api/space-pic').then(r => r.json()).then(data => {
+        if (data.imageUrl || data.title) {
+          const card = document.createElement('div');
+          card.className = 'api-card image-card';
+          if (data.imageUrl && data.mediaType !== 'video') {
+            const img = document.createElement('img');
+            img.src = data.imageUrl;
+            img.alt = data.title || 'Space';
+            img.addEventListener('click', () => openLightbox(data.imageUrl));
+            img.addEventListener('error', () => img.remove());
+            card.appendChild(img);
+          }
+          const cap = document.createElement('span');
+          cap.className = 'api-card-caption';
+          cap.textContent = data.title || 'NASA Astronomy Picture of the Day';
+          card.appendChild(cap);
+          if (data.date) {
+            const dateCap = document.createElement('span');
+            dateCap.className = 'api-card-caption';
+            dateCap.textContent = data.date;
+            card.appendChild(dateCap);
+          }
+          lastBubble.appendChild(card);
+          chatArea.scrollTop = chatArea.scrollHeight;
+        }
+      }).catch(() => {});
+    }
+
+    // Fun fact
+    if (funFactMatch) {
+      fetch('/api/fun-fact').then(r => r.json()).then(data => {
+        if (data.fact) {
+          const card = document.createElement('div');
+          card.className = 'api-card fact-card';
+          const icon = document.createElement('div');
+          icon.className = 'fact-icon';
+          icon.textContent = '\u{1F913}';
+          const txt = document.createElement('div');
+          txt.className = 'fact-text';
+          txt.textContent = data.fact;
+          card.appendChild(icon);
+          card.appendChild(txt);
+          if (data.source) {
+            const src = document.createElement('div');
+            src.className = 'fact-source';
+            src.textContent = `\u2014 ${data.source}`;
+            card.appendChild(src);
+          }
+          lastBubble.appendChild(card);
+          chatArea.scrollTop = chatArea.scrollHeight;
+        }
+      }).catch(() => {});
+    }
+
+    // Quote
+    if (quoteMatch) {
+      fetch('/api/quote').then(r => r.json()).then(data => {
+        if (data.quote) {
+          const card = document.createElement('div');
+          card.className = 'api-card fact-card';
+          const icon = document.createElement('div');
+          icon.className = 'fact-icon';
+          icon.textContent = '\u2728';
+          const txt = document.createElement('div');
+          txt.className = 'fact-text';
+          txt.textContent = data.quote;
+          card.appendChild(icon);
+          card.appendChild(txt);
+          if (data.author) {
+            const src = document.createElement('div');
+            src.className = 'fact-source';
+            src.textContent = `\u2014 ${data.author}`;
+            card.appendChild(src);
+          }
+          lastBubble.appendChild(card);
+          chatArea.scrollTop = chatArea.scrollHeight;
+        }
+      }).catch(() => {});
     }
   }
 }
@@ -1121,6 +1628,84 @@ async function runWelcomeFlow() {
   welcomeActive = false;
 }
 
+// ─── Weather Alerts (startup check) ───
+/**
+ * Check for active NWS weather alerts using browser geolocation.
+ * Shows a prominent alert card in the chat if severe weather is active.
+ *
+ * @returns {Promise<void>}
+ */
+async function checkWeatherAlerts() {
+  if (!navigator.geolocation) return;
+
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    try {
+      const { latitude, longitude } = pos.coords;
+      const res = await fetch(`/api/weather-alerts?lat=${latitude}&lon=${longitude}`);
+      const data = await res.json();
+      if (!data.alerts || !data.alerts.length) return;
+
+      // Only show Severe/Extreme alerts automatically
+      const severe = data.alerts.filter(a =>
+        a.severity === 'Extreme' || a.severity === 'Severe'
+      );
+      if (!severe.length) return;
+
+      // Build alert card
+      const charName = (CHARACTER_CONFIG[activeCharacter] || CHARACTER_CONFIG.melody).name;
+      severe.forEach(alert => {
+        const card = document.createElement('div');
+        card.className = `weather-alert-card severity-${alert.severity.toLowerCase()}`;
+
+        const icon = alert.event.toLowerCase().includes('tornado') ? '\u{1F32A}\u{FE0F}' :
+                     alert.event.toLowerCase().includes('thunder') ? '\u{26A1}' :
+                     alert.event.toLowerCase().includes('flood') ? '\u{1F30A}' :
+                     alert.event.toLowerCase().includes('winter') ? '\u{2744}\u{FE0F}' :
+                     alert.event.toLowerCase().includes('heat') ? '\u{1F525}' : '\u{26A0}\u{FE0F}';
+
+        card.innerHTML = `
+          <div class="alert-header">
+            <span class="alert-icon">${icon}</span>
+            <span class="alert-event">${alert.event}</span>
+            <span class="alert-severity">${alert.severity}</span>
+          </div>
+          <div class="alert-headline">${alert.headline || ''}</div>
+          ${alert.instruction ? `<div class="alert-instruction">${alert.instruction}</div>` : ''}
+        `;
+        chatArea.appendChild(card);
+      });
+
+      // Character comments on the alert
+      const topAlert = severe[0];
+      const alertComment = document.createElement('div');
+      alertComment.className = 'message assistant';
+      const avatar = document.createElement('div');
+      avatar.className = 'message-avatar';
+      const avatarImg = document.createElement('img');
+      avatarImg.src = (CHARACTER_CONFIG[activeCharacter] || CHARACTER_CONFIG.melody).avatar;
+      avatarImg.alt = charName;
+      avatarImg.className = 'message-avatar-img';
+      avatar.appendChild(avatarImg);
+      const bubble = document.createElement('div');
+      bubble.className = 'message-bubble';
+      bubble.textContent = activeCharacter === 'kuromi'
+        ? `Hey! There's a ${topAlert.event} alert for your area. Even I know when to take cover — stay safe, got it?!`
+        : activeCharacter === 'retsuko'
+        ? `Hey... there's a ${topAlert.event} alert right now. Please be careful and stay safe! I worry about you.`
+        : `Oh no~! There's a ${topAlert.event} alert for your area! Mama always says safety comes first — please be careful! \u2661`;
+      alertComment.appendChild(avatar);
+      alertComment.appendChild(bubble);
+      chatArea.appendChild(alertComment);
+      chatArea.scrollTop = chatArea.scrollHeight;
+    } catch {
+      // Silently fail — alerts are a nice-to-have
+    }
+  }, () => {
+    // Geolocation denied — skip alerts silently
+  }, { timeout: 5000 });
+}
+
 // ─── Init ───
 runWelcomeFlow();
+checkWeatherAlerts();
 messageInput.focus();

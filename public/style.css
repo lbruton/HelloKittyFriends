@@ -1125,3 +1125,306 @@ html, body {
 .character-picker-btn.active .character-picker-avatar {
   border-color: rgba(255, 255, 255, 0.5);
 }
+
+/* ─── API Cards (shared) ─── */
+.api-card {
+  margin-top: 10px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--text-dark) 15%, transparent);
+  background: color-mix(in srgb, var(--white) 95%, var(--char-primary, var(--accent-highlight)));
+}
+
+/* Image cards (dog, cat, fox, coffee, space) */
+.image-card img {
+  width: 100%;
+  max-height: 300px;
+  object-fit: cover;
+  display: block;
+}
+
+.api-card-caption {
+  display: block;
+  padding: 6px 10px;
+  font-size: 0.8em;
+  opacity: 0.7;
+}
+
+/* Fact/text cards (cat fact, advice, dad joke, insult, fun fact, quote) */
+.fact-card {
+  padding: 12px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.fact-icon {
+  font-size: 1.4em;
+  flex-shrink: 0;
+}
+
+.fact-text {
+  flex: 1;
+  line-height: 1.4;
+  min-width: 0;
+}
+
+.fact-source {
+  font-size: 0.8em;
+  opacity: 0.6;
+  margin-top: 4px;
+  width: 100%;
+  padding-left: 34px;
+}
+
+/* Recipe/Cocktail cards */
+.recipe-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.recipe-card-img {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  display: block;
+}
+
+.recipe-card-body {
+  padding: 10px 14px;
+}
+
+.recipe-card-title {
+  font-weight: 700;
+  font-size: 1.1em;
+  margin-bottom: 2px;
+}
+
+.recipe-card-meta {
+  font-size: 0.85em;
+  opacity: 0.6;
+  margin-bottom: 8px;
+}
+
+.recipe-card-ingredients ul {
+  margin: 4px 0 0 0;
+  padding-left: 18px;
+  font-size: 0.9em;
+}
+
+.recipe-card-ingredients li {
+  line-height: 1.5;
+}
+
+/* Music cards */
+.music-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+}
+
+.music-card-art {
+  width: 60px;
+  height: 60px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.music-card-info {
+  flex: 1;
+  min-width: 120px;
+}
+
+.music-card-title {
+  font-weight: 700;
+  font-size: 0.95em;
+}
+
+.music-card-artist {
+  font-size: 0.85em;
+  opacity: 0.8;
+}
+
+.music-card-album {
+  font-size: 0.8em;
+  opacity: 0.6;
+}
+
+.music-card-audio {
+  width: 100%;
+  height: 32px;
+  margin-top: 4px;
+}
+
+/* Weather card */
+.weather-card {
+  padding: 14px;
+  text-align: center;
+}
+
+.weather-card-temp {
+  font-size: 2.2em;
+  font-weight: 700;
+  color: var(--char-primary, var(--accent-highlight));
+}
+
+.weather-card-desc {
+  font-size: 1.1em;
+  margin: 2px 0;
+}
+
+.weather-card-location {
+  font-size: 0.9em;
+  opacity: 0.7;
+  margin-bottom: 6px;
+}
+
+.weather-card-details {
+  font-size: 0.8em;
+  opacity: 0.6;
+}
+
+/* Trivia card */
+.trivia-card {
+  padding: 14px;
+}
+
+.trivia-question {
+  font-weight: 600;
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+.trivia-answers {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.trivia-answer {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--text-dark) 20%, transparent);
+  background: transparent;
+  color: var(--text-dark);
+  cursor: pointer;
+  text-align: left;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 0.9em;
+  font-weight: 500;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.trivia-answer:hover:not(:disabled) {
+  border-color: var(--char-primary, var(--accent-highlight));
+}
+
+.trivia-answer.correct {
+  background: rgba(39, 174, 96, 0.2);
+  border-color: #27ae60;
+  color: #27ae60;
+}
+
+.trivia-answer.wrong {
+  background: rgba(231, 76, 60, 0.2);
+  border-color: #e74c3c;
+  color: #e74c3c;
+}
+
+.trivia-answer:disabled {
+  cursor: default;
+  opacity: 0.8;
+}
+
+/* ─── Dark mode overrides for API cards ─── */
+[data-theme="dark"] .trivia-answer.correct {
+  background: rgba(39, 174, 96, 0.25);
+  color: #5dd99a;
+}
+
+[data-theme="dark"] .trivia-answer.wrong {
+  background: rgba(231, 76, 60, 0.25);
+  color: #f08070;
+}
+
+/* ─── Weather Alert Cards ─── */
+.weather-alert-card {
+  margin: 8px 0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  border-left: 4px solid #e67e22;
+  background: rgba(230, 126, 34, 0.1);
+  animation: alertPulse 2s ease-in-out 3;
+}
+
+.weather-alert-card.severity-extreme {
+  border-left-color: #e74c3c;
+  background: rgba(231, 76, 60, 0.15);
+}
+
+.weather-alert-card.severity-severe {
+  border-left-color: #e67e22;
+  background: rgba(230, 126, 34, 0.12);
+}
+
+.alert-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.alert-icon {
+  font-size: 1.4em;
+}
+
+.alert-event {
+  font-weight: 700;
+  font-size: 1em;
+  flex: 1;
+}
+
+.alert-severity {
+  font-size: 0.75em;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(231, 76, 60, 0.2);
+  color: #e74c3c;
+}
+
+.severity-extreme .alert-severity {
+  background: rgba(231, 76, 60, 0.3);
+  color: #ff4136;
+}
+
+.alert-headline {
+  font-size: 0.9em;
+  line-height: 1.4;
+  margin-bottom: 6px;
+}
+
+.alert-instruction {
+  font-size: 0.85em;
+  opacity: 0.85;
+  font-style: italic;
+  line-height: 1.3;
+}
+
+@keyframes alertPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+[data-theme="dark"] .weather-alert-card.severity-extreme {
+  background: rgba(231, 76, 60, 0.2);
+}
+
+[data-theme="dark"] .weather-alert-card.severity-severe {
+  background: rgba(230, 126, 34, 0.15);
+}
