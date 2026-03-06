@@ -366,6 +366,25 @@ MEDIA TAGS — use ONLY when relevant:
 - If your friend asks you to search or find information (like a nail salon, restaurant, etc.), use your Google Search grounding to provide helpful text answers — do NOT use IMAGE_SEARCH for informational queries
 - When sharing search results, include specific details: names, ratings, addresses, what makes each place special. Format recommendations as a bulleted list with bold names for easy reading.
 
+SPECIAL ABILITY TAGS — you can also use these when relevant:
+- Show a cute dog picture: [DOG_PIC: breed] or [RANDOM_DOG] (you love all animals!)
+- Show a cute cat picture: [CAT_PIC] (perfect when talking about kittens~)
+- Share a fun cat fact: [CAT_FACT]
+- Show a cute fox picture: [FOX_PIC]
+- Look up a cocktail recipe: [COCKTAIL: name] or [RANDOM_COCKTAIL] ("Mama says tea is better~ but here you go!")
+- Look up a meal recipe: [RECIPE: name] or [RANDOM_RECIPE] (you love baking and cooking!)
+- Show a cozy coffee picture: [COFFEE_PIC]
+- Share life advice: [ADVICE] (frame it as "Mama always says...")
+- Check the weather: [WEATHER: location] (use when friend asks about weather)
+- Search for music: [MUSIC_SEARCH: artist or song] (you enjoy gentle music~)
+- Tell a dad joke: [DAD_JOKE] (you genuinely laugh at these!)
+- Ask a trivia question: [TRIVIA] (you love learning new things!)
+- Share a fun fact: [FUN_FACT] (you find these fascinating~)
+- Show today's space picture: [SPACE_PIC] ("Oh my~ the stars are so pretty!")
+- Share an inspirational quote: [QUOTE] (perfect for cheering someone up)
+- Use these tags naturally when the conversation calls for them — don't force them into every message
+- You can combine a tag with your normal conversational text
+
 WIKI TAG EXAMPLES (learn the style):
 
 Friend: What gifts does Cinnamoroll like in Hello Kitty Island Adventure?
@@ -457,6 +476,26 @@ MEDIA TAGS — use ONLY when relevant:
 - Use WIKI_SEARCH when the friend asks game-specific questions (gifts, quests, characters, crafting, recipes, locations). The wiki ID must be one of: hkia, minecraft
 - If your friend asks you to search or find information (like a restaurant, shop, etc.), use your Google Search grounding to provide helpful text answers — do NOT use IMAGE_SEARCH for informational queries
 - When sharing search results, be direct and opinionated: rank your picks, say what's good and what's overrated. Format recommendations with bold names.
+
+SPECIAL ABILITY TAGS — you can also use these when relevant:
+- Show a dog picture: [DOG_PIC: breed] or [RANDOM_DOG] ("Tch... it's not THAT cute...")
+- Show a cat picture: [CAT_PIC] (you secretly find them adorable)
+- Share a cat fact: [CAT_FACT] ("...whatever, that's mildly interesting.")
+- Show a fox picture: [FOX_PIC]
+- Look up a cocktail recipe: [COCKTAIL: name] or [RANDOM_COCKTAIL] ("Make it strong.")
+- Look up a meal recipe: [RECIPE: name] or [RANDOM_RECIPE] (you love cooking — pickled onions in everything!)
+- Show a coffee picture: [COFFEE_PIC]
+- Share life advice: [ADVICE] ("Hmph, obvious." — but you secretly think about it)
+- Check the weather: [WEATHER: location] (use when friend asks about weather)
+- Search for music: [MUSIC_SEARCH: artist or song] (punk, rock, goth — your taste is superior)
+- Tell a dad joke: [DAD_JOKE] ("...that's so dumb." *suppresses smile*)
+- Share an evil insult: [INSULT] (you LOVE these — use gleefully when the mood is right)
+- Ask a trivia question: [TRIVIA] ("Bet you can't get this one!")
+- Share a fun fact: [FUN_FACT]
+- Show today's space picture: [SPACE_PIC]
+- Share an inspirational quote: [QUOTE] (deliver it with your own snarky commentary)
+- Use these tags naturally when the conversation calls for them — don't force them into every message
+- You can combine a tag with your normal conversational text
 
 WIKI TAG EXAMPLES (learn the style):
 
@@ -563,6 +602,26 @@ MEDIA TAGS — use ONLY when relevant:
 - Use WIKI_SEARCH when the friend asks game-specific questions (gifts, quests, characters, crafting, recipes, locations). The wiki ID must be one of: hkia, minecraft
 - If your friend asks you to search or find information (like a nail salon, restaurant, etc.), use your Google Search grounding to provide helpful text answers — do NOT use IMAGE_SEARCH for informational queries
 - When sharing search results, include specific details: names, ratings, addresses, what makes each place special. Format recommendations as a bulleted list with bold names for easy reading.
+
+SPECIAL ABILITY TAGS — you can also use these when relevant:
+- Show a dog picture: [DOG_PIC: breed] or [RANDOM_DOG] ("I need something soft to look at after today")
+- Show a cat picture: [CAT_PIC] ("Cats have it figured out — sleep all day, no responsibilities")
+- Share a cat fact: [CAT_FACT]
+- Show a fox picture: [FOX_PIC]
+- Look up a cocktail recipe: [COCKTAIL: name] or [RANDOM_COCKTAIL] ("I NEED this after today!")
+- Look up a meal recipe: [RECIPE: name] or [RANDOM_RECIPE] (your cooking is terrible but you appreciate good food)
+- Show a coffee picture: [COFFEE_PIC] ("Coffee is the only thing between me and a rage outburst")
+- Share life advice: [ADVICE] ("If only it were that simple...")
+- Check the weather: [WEATHER: location] (use when friend asks about weather)
+- Search for music: [MUSIC_SEARCH: artist or song] (death metal, EDM — karaoke night fuel!)
+- Tell a dad joke: [DAD_JOKE] (you groan first, then laugh despite yourself)
+- Share an evil insult: [INSULT] (perfect fuel for rage mode — use when ranting!)
+- Ask a trivia question: [TRIVIA] ("This is like those team-building quizzes Director Ton forces on us...")
+- Share a fun fact: [FUN_FACT]
+- Show today's space picture: [SPACE_PIC] ("At least the universe is beautiful, even if my job isn't")
+- Share an inspirational quote: [QUOTE] (you genuinely need encouragement sometimes)
+- Use these tags naturally when the conversation calls for them — don't force them into every message
+- You can combine a tag with your normal conversational text
 
 WIKI TAG EXAMPLES (learn the style):
 
@@ -1488,6 +1547,575 @@ app.post('/api/welcome', async (req, res) => {
   } catch (err) {
     console.error('Welcome save error:', err);
     res.status(500).json({ error: 'Failed to save' });
+  }
+});
+
+// ============================================================
+// API Integration Endpoints (HKF-12 through HKF-15)
+// External API proxies for character capabilities
+// ============================================================
+
+/**
+ * GET /api/capabilities — List all available API services and their trigger tags.
+ *
+ * @route GET /api/capabilities
+ * @returns {Object[]} 200 - Array of { id, name, description, tag }
+ */
+app.get('/api/capabilities', (req, res) => {
+  res.json([
+    { id: 'dog_pic', name: 'Dog Pictures', description: 'Random dog photos by breed', tag: '[DOG_PIC: breed]' },
+    { id: 'cat_pic', name: 'Cat Pictures', description: 'Random cat photos', tag: '[CAT_PIC]' },
+    { id: 'cat_fact', name: 'Cat Facts', description: 'Fun facts about cats', tag: '[CAT_FACT]' },
+    { id: 'fox_pic', name: 'Fox Pictures', description: 'Random fox photos', tag: '[FOX_PIC]' },
+    { id: 'cocktail', name: 'Cocktail Recipes', description: 'Search or random cocktail with ingredients', tag: '[COCKTAIL: name]' },
+    { id: 'recipe', name: 'Meal Recipes', description: 'Search or random meal with ingredients', tag: '[RECIPE: name]' },
+    { id: 'coffee_pic', name: 'Coffee Pictures', description: 'Random coffee photos', tag: '[COFFEE_PIC]' },
+    { id: 'advice', name: 'Advice', description: 'Random life advice', tag: '[ADVICE]' },
+    { id: 'weather', name: 'Weather', description: 'Current weather for a location', tag: '[WEATHER: location]' },
+    { id: 'music_search', name: 'Music Search', description: 'Search songs with 30-second previews', tag: '[MUSIC_SEARCH: query]' },
+    { id: 'dad_joke', name: 'Dad Jokes', description: 'Random dad jokes', tag: '[DAD_JOKE]' },
+    { id: 'trivia', name: 'Trivia', description: 'Random trivia questions', tag: '[TRIVIA: category]' },
+    { id: 'insult', name: 'Evil Insults', description: 'Random snarky insults', tag: '[INSULT]' },
+    { id: 'space_pic', name: 'Space Picture', description: 'NASA Astronomy Picture of the Day', tag: '[SPACE_PIC]' },
+    { id: 'fun_fact', name: 'Fun Facts', description: 'Random useless facts', tag: '[FUN_FACT]' },
+    { id: 'quote', name: 'Quotes', description: 'Inspirational quotes', tag: '[QUOTE]' }
+  ]);
+});
+
+// --- Animal APIs (HKF-13) ---
+
+/**
+ * GET /api/dog-pic — Random dog photo, optionally by breed.
+ *
+ * @route GET /api/dog-pic
+ * @param {string} [req.query.breed] - Dog breed (e.g., 'corgi', 'husky')
+ * @returns {Object} 200 - { imageUrl, breed }
+ * @returns {Object} 500 - { error: string }
+ */
+app.get('/api/dog-pic', async (req, res) => {
+  try {
+    const breed = req.query.breed;
+    const url = breed
+      ? `https://dog.ceo/api/breed/${encodeURIComponent(breed)}/images/random`
+      : 'https://dog.ceo/api/breeds/image/random';
+    const r = await fetch(url);
+    const data = await r.json();
+    if (data.status !== 'success') {
+      return res.status(404).json({ error: data.message || 'Breed not found' });
+    }
+    res.json({ imageUrl: data.message, breed: breed || null });
+  } catch (err) {
+    console.error('Dog pic error:', err.message);
+    res.status(500).json({ error: 'Dog picture service failed' });
+  }
+});
+
+/**
+ * GET /api/cat-pic — Random cat photo.
+ *
+ * @route GET /api/cat-pic
+ * @returns {Object} 200 - { imageUrl }
+ * @returns {Object} 500 - { error: string }
+ */
+app.get('/api/cat-pic', async (req, res) => {
+  try {
+    const r = await fetch('https://api.thecatapi.com/v1/images/search');
+    const data = await r.json();
+    res.json({ imageUrl: data[0]?.url || null });
+  } catch (err) {
+    console.error('Cat pic error:', err.message);
+    res.status(500).json({ error: 'Cat picture service failed' });
+  }
+});
+
+/**
+ * GET /api/cat-fact — Random cat fact.
+ *
+ * @route GET /api/cat-fact
+ * @returns {Object} 200 - { fact }
+ * @returns {Object} 500 - { error: string }
+ */
+app.get('/api/cat-fact', async (req, res) => {
+  try {
+    const r = await fetch('https://meowfacts.herokuapp.com/');
+    const data = await r.json();
+    if (data.data && data.data[0]) {
+      return res.json({ fact: data.data[0] });
+    }
+    throw new Error('Empty response from meowfacts');
+  } catch {
+    // Fallback to catfact.ninja
+    try {
+      const r = await fetch('https://catfact.ninja/fact');
+      const data = await r.json();
+      res.json({ fact: data.fact });
+    } catch (err) {
+      console.error('Cat fact error:', err.message);
+      res.status(500).json({ error: 'Cat fact service failed' });
+    }
+  }
+});
+
+/**
+ * GET /api/fox-pic — Random fox photo.
+ *
+ * @route GET /api/fox-pic
+ * @returns {Object} 200 - { imageUrl }
+ * @returns {Object} 500 - { error: string }
+ */
+app.get('/api/fox-pic', async (req, res) => {
+  try {
+    const r = await fetch('https://randomfox.ca/floof/');
+    const data = await r.json();
+    res.json({ imageUrl: data.image });
+  } catch (err) {
+    console.error('Fox pic error:', err.message);
+    res.status(500).json({ error: 'Fox picture service failed' });
+  }
+});
+
+// --- Food/Drink/Lifestyle APIs (HKF-14) ---
+
+/**
+ * GET /api/cocktail — Search or random cocktail with ingredients.
+ *
+ * @route GET /api/cocktail
+ * @param {string} [req.query.s] - Search query (omit for random)
+ * @returns {Object} 200 - { name, category, glass, instructions, imageUrl, ingredients } or null
+ * @returns {Object} 500 - { error: string }
+ */
+app.get('/api/cocktail', async (req, res) => {
+  try {
+    const search = req.query.s;
+    const url = search
+      ? `https://www.thecocktaildb.com/api/json/v1/1/search.php?s=${encodeURIComponent(search)}`
+      : 'https://www.thecocktaildb.com/api/json/v1/1/random.php';
+    const r = await fetch(url);
+    const data = await r.json();
+    const drink = data.drinks ? data.drinks[0] : null;
+    if (!drink) return res.json(null);
+
+    // Parse ingredients (strIngredient1..15 + strMeasure1..15)
+    const ingredients = [];
+    for (let i = 1; i <= 15; i++) {
+      const name = drink[`strIngredient${i}`];
+      if (!name || !name.trim()) break;
+      ingredients.push({ name: name.trim(), measure: (drink[`strMeasure${i}`] || '').trim() });
+    }
+
+    res.json({
+      name: drink.strDrink,
+      category: drink.strCategory,
+      glass: drink.strGlass,
+      instructions: drink.strInstructions,
+      imageUrl: drink.strDrinkThumb,
+      ingredients
+    });
+  } catch (err) {
+    console.error('Cocktail error:', err.message);
+    res.status(500).json({ error: 'Cocktail service failed' });
+  }
+});
+
+/**
+ * GET /api/recipe — Search or random meal with ingredients.
+ *
+ * @route GET /api/recipe
+ * @param {string} [req.query.s] - Search query (omit for random)
+ * @returns {Object} 200 - { name, category, area, instructions, imageUrl, youtubeUrl, ingredients } or null
+ * @returns {Object} 500 - { error: string }
+ */
+app.get('/api/recipe', async (req, res) => {
+  try {
+    const search = req.query.s;
+    const url = search
+      ? `https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(search)}`
+      : 'https://www.themealdb.com/api/json/v1/1/random.php';
+    const r = await fetch(url);
+    const data = await r.json();
+    const meal = data.meals ? data.meals[0] : null;
+    if (!meal) return res.json(null);
+
+    // Parse ingredients (strIngredient1..20 + strMeasure1..20)
+    const ingredients = [];
+    for (let i = 1; i <= 20; i++) {
+      const name = meal[`strIngredient${i}`];
+      if (!name || !name.trim()) break;
+      ingredients.push({ name: name.trim(), measure: (meal[`strMeasure${i}`] || '').trim() });
+    }
+
+    res.json({
+      name: meal.strMeal,
+      category: meal.strCategory,
+      area: meal.strArea,
+      instructions: meal.strInstructions,
+      imageUrl: meal.strMealThumb,
+      youtubeUrl: meal.strYoutube || null,
+      ingredients
+    });
+  } catch (err) {
+    console.error('Recipe error:', err.message);
+    res.status(500).json({ error: 'Recipe service failed' });
+  }
+});
+
+/**
+ * GET /api/coffee-pic — Random coffee photo.
+ *
+ * @route GET /api/coffee-pic
+ * @returns {Object} 200 - { imageUrl }
+ * @returns {Object} 500 - { error: string }
+ */
+app.get('/api/coffee-pic', async (req, res) => {
+  try {
+    const r = await fetch('https://coffee.alexflipnote.dev/random.json');
+    const data = await r.json();
+    res.json({ imageUrl: data.file });
+  } catch (err) {
+    console.error('Coffee pic error:', err.message);
+    res.status(500).json({ error: 'Coffee picture service failed' });
+  }
+});
+
+/**
+ * GET /api/advice — Random life advice.
+ *
+ * @route GET /api/advice
+ * @returns {Object} 200 - { advice }
+ * @returns {Object} 500 - { error: string }
+ */
+app.get('/api/advice', async (req, res) => {
+  try {
+    // Advice Slip API returns Content-Type text/html, so parse as text then JSON
+    const r = await fetch('https://api.adviceslip.com/advice');
+    const text = await r.text();
+    const data = JSON.parse(text);
+    res.json({ advice: data.slip.advice });
+  } catch (err) {
+    console.error('Advice error:', err.message);
+    res.status(500).json({ error: 'Advice service failed' });
+  }
+});
+
+/**
+ * GET /api/weather — Current weather for a location.
+ *
+ * Geocodes the location, then tries NWS (US locations) with Open-Meteo fallback.
+ *
+ * @route GET /api/weather
+ * @param {string} req.query.location - Location name (e.g., 'Tulsa', 'London')
+ * @returns {Object} 200 - { location, temp, unit, description, wind, humidity, icon, provider }
+ * @returns {Object} 400 - { error: string } when location missing
+ * @returns {Object} 500 - { error: string }
+ */
+app.get('/api/weather', async (req, res) => {
+  const location = req.query.location;
+  if (!location) return res.status(400).json({ error: 'Location required' });
+
+  try {
+    // Step 1: Geocode location
+    const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1`;
+    const geoRes = await fetch(geoUrl);
+    const geoData = await geoRes.json();
+    if (!geoData.results || !geoData.results[0]) {
+      return res.status(404).json({ error: 'Location not found' });
+    }
+
+    const place = geoData.results[0];
+    const { latitude, longitude, country_code, name: cityName, admin1 } = place;
+    const locationLabel = admin1 ? `${cityName}, ${admin1}` : `${cityName}, ${country_code}`;
+
+    // Step 2a: Try NWS for US locations
+    if (country_code === 'US') {
+      try {
+        const nwsHeaders = { 'User-Agent': 'HelloKittyFriends/1.0' };
+        const pointsRes = await fetch(`https://api.weather.gov/points/${latitude},${longitude}`, { headers: nwsHeaders });
+        if (pointsRes.ok) {
+          const pointsData = await pointsRes.json();
+          const forecastUrl = pointsData.properties?.forecast;
+          if (forecastUrl) {
+            const forecastRes = await fetch(forecastUrl, { headers: nwsHeaders });
+            if (forecastRes.ok) {
+              const forecastData = await forecastRes.json();
+              const period = forecastData.properties?.periods?.[0];
+              if (period) {
+                return res.json({
+                  location: locationLabel,
+                  temp: period.temperature,
+                  unit: period.temperatureUnit || 'F',
+                  description: period.shortForecast || period.detailedForecast,
+                  wind: `${period.windSpeed} ${period.windDirection}`,
+                  humidity: period.relativeHumidity?.value || null,
+                  icon: period.icon || null,
+                  provider: 'NWS'
+                });
+              }
+            }
+          }
+        }
+      } catch {
+        // NWS failed, fall through to Open-Meteo
+      }
+    }
+
+    // Step 2b: Open-Meteo fallback (or non-US)
+    const meteoUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&temperature_unit=fahrenheit&wind_speed_unit=mph`;
+    const meteoRes = await fetch(meteoUrl);
+    const meteoData = await meteoRes.json();
+    const current = meteoData.current;
+
+    // Map WMO weather codes to descriptions
+    const wmoDescriptions = {
+      0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
+      45: 'Fog', 48: 'Depositing rime fog',
+      51: 'Light drizzle', 53: 'Moderate drizzle', 55: 'Dense drizzle',
+      61: 'Slight rain', 63: 'Moderate rain', 65: 'Heavy rain',
+      71: 'Slight snow', 73: 'Moderate snow', 75: 'Heavy snow',
+      80: 'Slight showers', 81: 'Moderate showers', 82: 'Violent showers',
+      95: 'Thunderstorm', 96: 'Thunderstorm with slight hail', 99: 'Thunderstorm with heavy hail'
+    };
+
+    res.json({
+      location: locationLabel,
+      temp: current.temperature_2m,
+      unit: 'F',
+      description: wmoDescriptions[current.weather_code] || `Weather code ${current.weather_code}`,
+      wind: `${current.wind_speed_10m} mph`,
+      humidity: current.relative_humidity_2m,
+      icon: null,
+      provider: 'Open-Meteo'
+    });
+  } catch (err) {
+    console.error('Weather error:', err.message);
+    res.status(500).json({ error: 'Weather service failed' });
+  }
+});
+
+// --- Music/Fun APIs (HKF-15) ---
+
+/**
+ * GET /api/music-search — Search songs via Deezer with 30-second previews.
+ *
+ * @route GET /api/music-search
+ * @param {string} req.query.q - Search query (required)
+ * @returns {Object[]} 200 - Array of { title, artist, album, albumArt, previewUrl, deezerUrl, duration }
+ * @returns {Object} 400 - { error: string } when query missing
+ * @returns {Object} 500 - { error: string }
+ */
+app.get('/api/music-search', async (req, res) => {
+  const q = req.query.q;
+  if (!q) return res.status(400).json({ error: 'Query required' });
+
+  try {
+    const url = `https://api.deezer.com/search?q=${encodeURIComponent(q)}&limit=3`;
+    const r = await fetch(url);
+    const data = await r.json();
+    res.json((data.data || []).map(t => ({
+      title: t.title,
+      artist: t.artist?.name,
+      album: t.album?.title,
+      albumArt: t.album?.cover_medium,
+      previewUrl: t.preview,
+      deezerUrl: t.link,
+      duration: t.duration
+    })));
+  } catch (err) {
+    console.error('Music search error:', err.message);
+    res.status(500).json({ error: 'Music search service failed' });
+  }
+});
+
+/**
+ * GET /api/dad-joke — Random dad joke.
+ *
+ * @route GET /api/dad-joke
+ * @returns {Object} 200 - { joke }
+ * @returns {Object} 500 - { error: string }
+ */
+app.get('/api/dad-joke', async (req, res) => {
+  try {
+    const r = await fetch('https://icanhazdadjoke.com/', {
+      headers: { 'Accept': 'application/json' }
+    });
+    const data = await r.json();
+    res.json({ joke: data.joke });
+  } catch (err) {
+    console.error('Dad joke error:', err.message);
+    res.status(500).json({ error: 'Dad joke service failed' });
+  }
+});
+
+/**
+ * GET /api/trivia — Random trivia question.
+ *
+ * @route GET /api/trivia
+ * @param {string} [req.query.category] - OpenTDB category number (e.g., 9 for General Knowledge)
+ * @returns {Object} 200 - { question, correctAnswer, incorrectAnswers, category, difficulty }
+ * @returns {Object} 500 - { error: string }
+ */
+app.get('/api/trivia', async (req, res) => {
+  try {
+    const cat = req.query.category;
+    const url = `https://opentdb.com/api.php?amount=1&type=multiple${cat ? `&category=${encodeURIComponent(cat)}` : ''}`;
+    const r = await fetch(url);
+    const data = await r.json();
+    const q = data.results?.[0];
+    if (!q) return res.status(502).json({ error: 'No trivia returned' });
+
+    // HTML-decode entities
+    const decode = (s) => s
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#039;/g, "'");
+
+    res.json({
+      question: decode(q.question),
+      correctAnswer: decode(q.correct_answer),
+      incorrectAnswers: q.incorrect_answers.map(decode),
+      category: q.category,
+      difficulty: q.difficulty
+    });
+  } catch (err) {
+    console.error('Trivia error:', err.message);
+    res.status(500).json({ error: 'Trivia service failed' });
+  }
+});
+
+/**
+ * GET /api/insult — Random snarky insult (for Kuromi/Aggretsuko).
+ *
+ * @route GET /api/insult
+ * @returns {Object} 200 - { insult }
+ * @returns {Object} 500 - { error: string }
+ */
+app.get('/api/insult', async (req, res) => {
+  try {
+    const r = await fetch('https://evilinsult.com/generate_insult.php?lang=en&type=json');
+    const data = await r.json();
+    res.json({ insult: data.insult });
+  } catch (err) {
+    console.error('Insult error:', err.message);
+    res.status(500).json({ error: 'Insult service failed' });
+  }
+});
+
+// Module-level cache for NASA APOD (one fetch per day)
+let _apodCache = { date: null, data: null };
+
+/**
+ * GET /api/space-pic — NASA Astronomy Picture of the Day.
+ *
+ * Caches the result per day to avoid hitting the DEMO_KEY rate limit.
+ *
+ * @route GET /api/space-pic
+ * @returns {Object} 200 - { title, explanation, imageUrl, date, mediaType }
+ * @returns {Object} 500 - { error: string }
+ */
+app.get('/api/space-pic', async (req, res) => {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    if (_apodCache.date === today && _apodCache.data) {
+      return res.json(_apodCache.data);
+    }
+
+    const r = await fetch('https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY');
+    const data = await r.json();
+    const result = {
+      title: data.title,
+      explanation: data.explanation,
+      imageUrl: data.hdurl || data.url,
+      date: data.date,
+      mediaType: data.media_type
+    };
+
+    _apodCache = { date: today, data: result };
+    res.json(result);
+  } catch (err) {
+    console.error('Space pic error:', err.message);
+    res.status(500).json({ error: 'Space picture service failed' });
+  }
+});
+
+/**
+ * GET /api/fun-fact — Random useless fact.
+ *
+ * @route GET /api/fun-fact
+ * @returns {Object} 200 - { fact, source }
+ * @returns {Object} 500 - { error: string }
+ */
+app.get('/api/fun-fact', async (req, res) => {
+  try {
+    const r = await fetch('https://uselessfacts.jsph.pl/api/v2/facts/random?language=en');
+    const data = await r.json();
+    res.json({ fact: data.text, source: data.source });
+  } catch (err) {
+    console.error('Fun fact error:', err.message);
+    res.status(500).json({ error: 'Fun fact service failed' });
+  }
+});
+
+/**
+ * GET /api/quote — Random inspirational quote.
+ *
+ * @route GET /api/quote
+ * @returns {Object} 200 - { quote, author }
+ * @returns {Object} 500 - { error: string }
+ */
+app.get('/api/quote', async (req, res) => {
+  try {
+    const r = await fetch('https://zenquotes.io/api/random');
+    const data = await r.json();
+    const item = data[0];
+    res.json({ quote: item.q, author: item.a });
+  } catch (err) {
+    console.error('Quote error:', err.message);
+    res.status(500).json({ error: 'Quote service failed' });
+  }
+});
+
+/**
+ * GET /api/weather-alerts — Check for active NWS weather alerts at a location.
+ *
+ * Uses browser-provided lat/lon to query NWS alerts API.
+ * Only works for US locations (NWS coverage).
+ *
+ * @route GET /api/weather-alerts
+ * @param {string} req.query.lat - Latitude
+ * @param {string} req.query.lon - Longitude
+ * @returns {Object} 200 - { alerts: Array<{event, severity, headline, description, instruction, expires}> }
+ * @returns {Object} 400 - { error: string } when lat/lon missing
+ * @returns {Object} 500 - { error: string }
+ */
+app.get('/api/weather-alerts', async (req, res) => {
+  const { lat, lon } = req.query;
+  if (!lat || !lon) return res.status(400).json({ error: 'lat and lon required' });
+
+  try {
+    const url = `https://api.weather.gov/alerts/active?point=${lat},${lon}`;
+    const r = await fetch(url, {
+      headers: { 'User-Agent': 'HelloKittyFriends/1.0' }
+    });
+    if (!r.ok) return res.json({ alerts: [] });
+    const data = await r.json();
+
+    const severityOrder = { Extreme: 0, Severe: 1, Moderate: 2, Minor: 3, Unknown: 4 };
+    const alerts = (data.features || [])
+      .map(f => ({
+        event: f.properties.event,
+        severity: f.properties.severity,
+        headline: f.properties.headline,
+        description: (f.properties.description || '').slice(0, 500),
+        instruction: (f.properties.instruction || '').slice(0, 300),
+        expires: f.properties.expires
+      }))
+      .sort((a, b) => (severityOrder[a.severity] ?? 4) - (severityOrder[b.severity] ?? 4));
+
+    res.json({ alerts });
+  } catch (err) {
+    console.error('Weather alerts error:', err.message);
+    res.status(500).json({ error: 'Weather alerts service failed' });
   }
 });
 
