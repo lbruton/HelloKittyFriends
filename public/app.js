@@ -31,8 +31,8 @@ const replyStyleSelect = document.getElementById('replyStyleSelect');
 const soundToggle = document.getElementById('soundToggle');
 
 // ─── Session ───
-/** @type {string} Unique session ID for conversation buffer (new per tab, persists on refresh). */
-const sessionId = sessionStorage.getItem('melodySessionId') || (() => {
+/** @type {string} Unique session ID for conversation buffer (new per tab, persists on refresh). Reset on character switch. */
+let sessionId = sessionStorage.getItem('melodySessionId') || (() => {
   const id = crypto.randomUUID();
   sessionStorage.setItem('melodySessionId', id);
   return id;
@@ -100,9 +100,150 @@ if (!activeUser) {
  * @type {Object<string, {name: string, avatar: string, color: string}>}
  */
 const CHARACTER_CONFIG = {
-  melody:  { name: 'My Melody',  avatar: '/images/melody-avatar.png',  color: '#FF69B4' },
-  kuromi:  { name: 'Kuromi',      avatar: '/images/kuromi-avatar.png',   color: '#FF1493' },
-  retsuko: { name: 'Aggretsuko',  avatar: '/images/retsuko-avatar.png',  color: '#FF4500' }
+  melody: {
+    name: 'My Melody',
+    avatar: '/images/melody-avatar.png',
+    color: '#FF69B4',
+    primaryColor: '#FF69B4',
+    secondaryColor: '#FF85C8',
+    subtitle: 'Your Sweet Sanrio Friend \u2661',
+    placeholder: 'Say something sweet... \u2661',
+    greeting1: "Yaaan~! A new friend! Hello hello! I'm My Melody, and I live in Mariland with my Mama, Papa, and little brother Rhythm~ I'm so happy to meet you!",
+    greeting2: "Mama always says you should start a friendship by learning each other's names... so, what's your name? \u2661",
+    greetAckName: n => `${n}! What a lovely name~ Mama would say it sounds like a flower name... even if it doesn't, hehe. I'll remember it forever!`,
+    greetAskColor: "Oh! I'm curious~ what's your favorite color? Mine is pink, of course... because of my hood! \u2661",
+    greetAckColor: (c, n) => `${c.charAt(0).toUpperCase() + c.slice(1)}! Ahh~ that's such a pretty color! I can see why you like it. I'll remember that about you, ${n}!`,
+    greetAskInterests: "One more thing... what do you like to do for fun? Any hobbies or interests? I want to know everything about my new friend~! Onegai?",
+    greetFinish1: n => `That sounds wonderful! Mama always says the best friendships start with sharing what makes you happy~ And now I know so much about you, ${n}!`,
+    greetFinish2: "I'm so glad we're friends now! You can talk to me about anything, anytime~ I'll always be here with tea and almond pound cake! \u2661",
+    greetReturn: (n, days, streak) => {
+      const pick = a => a[Math.floor(Math.random() * a.length)];
+      if (days === 0) {
+        if (streak > 2) return pick([
+          `Welcome back, ${n}! That's ${streak} days in a row~ I'm so happy!`,
+          `${n}! ${streak} whole days together! Mama would say that's what real friendship looks like~`,
+          `Ohh, ${streak} days in a row, ${n}! I baked extra almond cake just in case~ ♡`,
+        ]);
+        return pick([
+          `Hi again, ${n}! I was just having some tea and thinking about you~`,
+          `${n}! Oh~! I was literally just about to write you a letter. Mama always says great minds think alike!`,
+          `Ohh, ${n}! I'm so glad you came by~ I saved you a piece of almond pound cake ♡`,
+          `${n}! I was just humming a song and here you are! How lovely~`,
+        ]);
+      }
+      if (days === 1) return pick([
+        `${n}! You came back! I was just baking almond pound cake and hoping you'd visit~`,
+        `Oh~! ${n}! I missed you yesterday. Flat said you'd come back and he was right! ♡`,
+        `${n}! I kept a slice of almond cake warm just in case. Mama says hope is the best ingredient~`,
+      ]);
+      if (days <= 3) return pick([
+        `${n}~! It's been ${days} days! I missed chatting with you... Mama says absence makes the heart grow fonder!`,
+        `${n}! Oh, ${days} days! I didn't forget about you — Flat said I was being dramatic but I wasn't~`,
+        `${n}!! There you are! ${days} days felt like forever. I may have stress-baked. Several cakes.`,
+      ]);
+      return pick([
+        `${n}!! Yaaan~! It's been ${days} whole days! I missed you so much... I saved you some tea!`,
+        `${n}!! I was so worried! ${days} days is so long. Come in, the tea is still warm somehow~ ♡`,
+        `${n}!! Oh my~! ${days} days! Mama said I shouldn't wait by the window but I definitely waited by the window.`,
+      ]);
+    }
+  },
+  kuromi: {
+    name: 'Kuromi',
+    avatar: '/images/kuromi-avatar.png',
+    color: '#7B2FBE',
+    primaryColor: '#4A1080',
+    secondaryColor: '#8B3EC8',
+    subtitle: 'Pretty Devil Girl \u2660',
+    placeholder: 'Go ahead, say something... \u2660',
+    greeting1: "Hmph! Don't get the wrong idea — I just happened to notice you were here. I'm Kuromi. Leader of the Kuromi 5. The prettiest, most feared pretty devil girl in Mariland.",
+    greeting2: "...Fine. Since you're obviously not going anywhere, you might as well tell me your name. What is it?",
+    greetAckName: n => `${n}. Fine. I'll remember it. Don't make me regret learning your name.`,
+    greetAskColor: "I suppose I should ask — what's your favorite color? Mine is black. And maybe a little pink. Don't make it weird.",
+    greetAckColor: (c, n) => `${c.charAt(0).toUpperCase() + c.slice(1)}... not bad. Could be darker, but I'll allow it. I'll remember that, ${n}.`,
+    greetAskInterests: "One last thing. What do you actually like to do? I'm asking because I want to know, NOT because I suddenly care. Don't flatter yourself.",
+    greetFinish1: n => `...Hm. Those are actually kind of interesting. Not that I'd ever admit that out loud. Anyway — I guess we're acquaintances now, ${n}.`,
+    greetFinish2: "Don't think this makes us friends or anything! I just... like having someone to talk to sometimes. Besides Baku. He doesn't count. \u2660",
+    greetReturn: (n, days, streak) => {
+      const pick = a => a[Math.floor(Math.random() * a.length)];
+      if (days === 0) {
+        if (streak > 2) return pick([
+          `Hmph! Back again, ${n}? That's ${streak} days in a row. Not that I was counting. ...I totally was.`,
+          `${streak} days in a row, ${n}. I've been keeping track. FOR RESEARCH PURPOSES. Don't read into it.`,
+          `Oh, ${n}. ${streak} days straight. I'm not impressed. ...Okay I'm a little impressed. Hmph.`,
+        ]);
+        return pick([
+          `Oh. It's you, ${n}. Good. I mean — whatever. I was bored anyway.`,
+          `${n}. You're back. ...Good. Baku bet me you'd show up. I owe him a pickled plum. Worth it.`,
+          `Hmph. ${n}. About time. I was just sitting here. For no reason. Waiting for nothing.`,
+          `Oh. ${n}. I was thinking about something completely unrelated to you. Welcome back. \u2660`,
+        ]);
+      }
+      if (days === 1) return pick([
+        `${n}. You came back. ...I knew you would. Baku said I was being dramatic. I wasn't.`,
+        `Oh look, it's ${n}. I only checked the door twice. That's basically nothing.`,
+        `${n}! Back after one day. I wasn't waiting. I was... nearby. That's all.`,
+      ]);
+      if (days <= 3) return pick([
+        `${n}! It's been ${days} days! Not that I was keeping track! I just happened to remember! \u2660`,
+        `${n}. ${days} days. I've been doing FINE, obviously. Extremely fine. ...Where were you.`,
+        `Oh! ${n}! ${days} days is a long time. I'm not saying I was worried. Things were just less interesting.`,
+      ]);
+      return pick([
+        `${n}!! ${days} days?! I was starting to think you'd forgotten about me! Not that I care! Hmph!`,
+        `${n}!! ${days} DAYS?! Do you know what kind of chaos that is?! I mean — whatever. You're here now.`,
+        `${n}! I've been fine for ${days} days. Completely fine. (I was not fine.) Come in. \u2660`,
+      ]);
+    }
+  },
+  retsuko: {
+    name: 'Aggretsuko',
+    avatar: '/images/retsuko-avatar.png',
+    color: '#CC2200',
+    primaryColor: '#AA1A00',
+    secondaryColor: '#EE3300',
+    subtitle: 'Office Worker / Metal Vocalist \u266a',
+    placeholder: "What's on your mind... \u266a",
+    greeting1: "Oh! H-hi... Sorry, I was just spacing out. Long day at work. I'm Retsuko — accountant at Carrier Man Trading Co. Five years at this job. It's fine.",
+    greeting2: "...So, um. My coworker Fenneko says I should try talking to new people. She's usually right about things. What's your name?",
+    greetAckName: n => `${n}! Nice to meet you. I'm honestly bad with names but I have a feeling I'll remember yours.`,
+    greetAskColor: "Random question — what's your favorite color? I used to always say pink, but lately I've been feeling more... angry red. What about you?",
+    greetAckColor: (c, n) => `${c.charAt(0).toUpperCase() + c.slice(1)}! Good choice. I'll remember that about you, ${n}.`,
+    greetAskInterests: "Last question, I promise — what do you do for fun? Or what do you WANT to do? I'm asking for me. But also for you.",
+    greetFinish1: n => `That's genuinely cool. I sometimes forget there's life outside the office. ${n}, I think I'm going to like talking to you.`,
+    greetFinish2: "If you ever need to vent about your day — or anything — I'm here. I have a lot of feelings and a microphone and nowhere to be. \u266a",
+    greetReturn: (n, days, streak) => {
+      const pick = a => a[Math.floor(Math.random() * a.length)];
+      if (days === 0) {
+        if (streak > 2) return pick([
+          `Oh, ${n}! ${streak} days in a row — I love that for us. How was your day?`,
+          `${n}! ${streak} days straight. Fenneko said I should track consistency. She's right. Hi.`,
+          `${n}! ${streak} days running. This is the most consistent thing in my life right now. Thank you for that.`,
+        ]);
+        return pick([
+          `${n}! Perfect timing. I just got back from karaoke and needed someone to talk to.`,
+          `Oh! ${n}. Good. I was just sitting here trying not to think about work. How are YOU?`,
+          `${n}! I just made tea. Sit with me for a second. How's everything?`,
+          `${n}! You caught me right after a karaoke session. I feel 40% better. Still need to vent. Hi!`,
+        ]);
+      }
+      if (days === 1) return pick([
+        `${n}! You're back. Good. I have a lot to say about what happened at work today.`,
+        `Oh! ${n}! I thought of something I wanted to tell you yesterday. Good timing.`,
+        `${n}! Back already? In a good way. Fenneko gives too much advice. I needed YOU.`,
+      ]);
+      if (days <= 3) return pick([
+        `${n}! ${days} days! I thought maybe you got buried under paperwork. Are you okay?`,
+        `${n}! ${days} days! I did three extra karaoke sessions. Draw your own conclusions. \u266a`,
+        `${n}! Oh, ${days} days. I had extra feelings. The karaoke staff thanks you for my business.`,
+      ]);
+      return pick([
+        `${n}!! It's been ${days} days! I almost called Fenneko to investigate. Where have you been?!`,
+        `${n}!! ${days} days?! That's ${days} unanswered questions about your life! Are you okay?!`,
+        `${n}!! I went to karaoke for ${days} days straight. Even the staff asked about you. Come in!`,
+      ]);
+    }
+  }
 };
 
 /** @type {string} Currently active character ID, persisted in localStorage. */
@@ -135,8 +276,15 @@ function selectCharacter(characterId) {
     headerTitle.firstChild.textContent = config.name;
   }
 
-  // Apply character accent color (takes priority over user color)
+  // Apply character theme colors
   document.documentElement.style.setProperty('--accent-highlight', config.color);
+  document.documentElement.style.setProperty('--char-primary', config.primaryColor);
+  document.documentElement.style.setProperty('--char-secondary', config.secondaryColor);
+
+  // Update subtitle and placeholder
+  const subtitleEl = document.getElementById('headerSubtitle');
+  if (subtitleEl) subtitleEl.textContent = config.subtitle;
+  if (!welcomeActive) messageInput.placeholder = config.placeholder;
 
   // Update active highlight on picker buttons
   characterPicker.querySelectorAll('.character-picker-btn').forEach(btn => {
@@ -150,19 +298,46 @@ function selectCharacter(characterId) {
     typingAvatar.alt = config.name;
   }
 
-  // Hide picker
-  characterPicker.classList.add('hidden');
 }
 
-// Wire header avatar click to open character picker
-headerAvatar.addEventListener('click', () => {
-  characterPicker.classList.remove('hidden');
-});
+/** Ordered list of character IDs for cycling via avatar tap. */
+const CHARACTER_ORDER = ['melody', 'kuromi', 'retsuko'];
 
-// Wire character picker buttons via delegation (no inline onclick needed)
-characterPicker.querySelectorAll('.character-picker-btn').forEach(btn => {
-  btn.addEventListener('click', () => selectCharacter(btn.dataset.character));
-});
+/**
+ * Cycle to the next character, clear chat, and show a fresh greeting.
+ * Resets the session ID so the server-side conversation buffer starts fresh.
+ */
+async function cycleCharacter() {
+  const currentIndex = CHARACTER_ORDER.indexOf(activeCharacter);
+  const nextId = CHARACTER_ORDER[(currentIndex + 1) % CHARACTER_ORDER.length];
+  selectCharacter(nextId);
+
+  // Reset session buffer for the new character
+  sessionId = crypto.randomUUID();
+  sessionStorage.setItem('melodySessionId', sessionId);
+
+  // Clear chat messages
+  chatArea.querySelectorAll('.message, .welcome-message').forEach(el => el.remove());
+
+  // Show a fresh greeting from the new character
+  const char = CHARACTER_CONFIG[nextId];
+  showTyping();
+  await new Promise(r => setTimeout(r, 700));
+  hideTyping();
+  try {
+    const res = await fetch(`/api/welcome-status${activeUser ? '?userId=' + activeUser : ''}`);
+    const status = await res.json();
+    const name = status.friendName || (activeUser && activeUser !== 'guest' ? activeUser : null);
+    addMessage(char.greetReturn(name || 'friend', status.daysSince ?? 0, status.streakDays ?? 0) + ' \u2661', 'assistant');
+  } catch {
+    addMessage(char.greetReturn('friend', 0, 0) + ' \u2661', 'assistant');
+  }
+}
+
+// Avatar tap cycles through characters
+headerAvatar.style.cursor = 'pointer';
+headerAvatar.title = 'Tap to switch companion';
+headerAvatar.addEventListener('click', cycleCharacter);
 
 // ─── Settings ───
 let replyStyle = localStorage.getItem('replyStyle') || 'default';
@@ -412,14 +587,40 @@ function addMessage(text, role, imageDataURL, searchImageUrl, videoResult, sourc
       bubble.appendChild(p);
     }
   } else if (role === 'assistant') {
-    // Render basic markdown: **bold**, *italic*, bullet lists
-    const formatted = text
+    // Render special character blocks, then basic markdown
+    const formatText = raw => raw
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.+?)\*/g, '<em>$1</em>')
       .replace(/\n\s*[\*\-]\s+/g, '<br>• ')
       .replace(/\n/g, '<br>');
-    bubble.innerHTML = formatted;
+
+    // Split on special tags, preserving them as block elements
+    const formatted = text
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      // Retsuko metal lyrics — Bebas Neue, neon red glow
+      .replace(/\[LYRICS:\s*([\s\S]+?)\]/g, (_, lyrics) => {
+        const lines = lyrics.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+        const html = lines.trim().replace(/\s*\/\s*/g, '<br>');
+        return `</p><div class="lyrics-block">${html}</div><p>`;
+      })
+      // Melody Mama Says — italic pink quote block
+      .replace(/\[MAMA:\s*([\s\S]+?)\]/g, (_, quote) => {
+        const html = formatText(quote.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim());
+        return `</p><div class="mama-quote">${html}</div><p>`;
+      })
+      // Kuromi villain declaration — gothic purple block
+      .replace(/\[EVIL:\s*([\s\S]+?)\]/g, (_, speech) => {
+        const html = formatText(speech.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim());
+        return `</p><div class="evil-speech">${html}</div><p>`;
+      })
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/\n\s*[\*\-]\s+/g, '<br>• ')
+      .replace(/\n/g, '<br>');
+
+    bubble.innerHTML = `<p>${formatted}</p>`.replace(/<p><\/p>/g, '').replace(/<p><br>/g, '<p>');
+
   } else {
     bubble.textContent = text;
   }
@@ -637,7 +838,8 @@ async function processReply(text, sources, wikiSource) {
   addMessage(displayText, 'assistant', null, searchImageUrl, videoResult, sources, wikiSource);
 
   // Fetch and append reaction GIF asynchronously (non-blocking)
-  if (reactionMatch) {
+  // Extra gate: even when the model emits [REACTION:], only show ~25% of the time
+  if (reactionMatch && Math.random() < 0.25) {
     const emotion = reactionMatch[1].toLowerCase();
     const categories = REACTION_MAP[emotion];
     if (categories) {
@@ -1501,6 +1703,7 @@ selectCharacter(activeCharacter);
  * @returns {Promise<void>}
  */
 async function runWelcomeFlow() {
+  const char = CHARACTER_CONFIG[activeCharacter] || CHARACTER_CONFIG.melody;
   const welcomeEl = chatArea.querySelector('.welcome-message');
 
   // Check server-side status first — the server knows if this is a returning user
@@ -1514,22 +1717,9 @@ async function runWelcomeFlow() {
       // Server recognizes this user — set localStorage so future loads are instant
       localStorage.setItem(welcomeKey, 'true');
 
-      let welcomeText;
       const name = status.friendName || 'friend';
-      if (status.daysSince === 0) {
-        if (status.streakDays > 2) {
-          welcomeText = `Welcome back, ${name}! That's ${status.streakDays} days in a row~ I'm so happy!`;
-        } else {
-          welcomeText = `Hi again, ${name}! I was just having some tea and thinking about you~`;
-        }
-      } else if (status.daysSince === 1) {
-        welcomeText = `${name}! You came back! I was just baking almond pound cake and hoping you'd visit~`;
-      } else if (status.daysSince <= 3) {
-        welcomeText = `${name}~! It's been ${status.daysSince} days! I missed chatting with you... Mama says absence makes the heart grow fonder!`;
-      } else {
-        welcomeText = `${name}!! Yaaan~! It's been ${status.daysSince} whole days! I missed you so much... I saved you some tea!`;
-      }
-      if (welcomeEl) welcomeEl.querySelector('p').textContent = welcomeText + ' ♡';
+      const welcomeText = char.greetReturn(name, status.daysSince, status.streakDays);
+      if (welcomeEl) welcomeEl.querySelector('p').textContent = welcomeText + ' \u2661';
       return;
     }
   } catch {
@@ -1564,10 +1754,10 @@ async function runWelcomeFlow() {
 
   // Step 1: Introduction
   await melodyTyping(1000);
-  addMessage("Yaaan~! A new friend! Hello hello! I'm My Melody, and I live in Mariland with my Mama, Papa, and little brother Rhythm~ I'm so happy to meet you!", 'assistant');
+  addMessage(char.greeting1, 'assistant');
 
   await melodyTyping(600);
-  addMessage("Mama always says you should start a friendship by learning each other's names... so, what's your name? \u2661", 'assistant');
+  addMessage(char.greeting2, 'assistant');
 
   // Step 2: Get name
   messageInput.placeholder = "Type your name...";
@@ -1581,10 +1771,10 @@ async function runWelcomeFlow() {
   });
 
   await melodyTyping(800);
-  addMessage(`${name}! What a lovely name~ Mama would say it sounds like a flower name... even if it doesn't, hehe. I'll remember it forever!`, 'assistant');
+  addMessage(char.greetAckName(name), 'assistant');
 
   await melodyTyping(600);
-  addMessage("Oh! I'm curious~ what's your favorite color? Mine is pink, of course... because of my hood! \u2661", 'assistant');
+  addMessage(char.greetAskColor, 'assistant');
 
   // Step 3: Get color
   messageInput.placeholder = "Type your favorite color...";
@@ -1601,10 +1791,10 @@ async function runWelcomeFlow() {
   applyAccentColor(color);
 
   await melodyTyping(800);
-  addMessage(`${color.charAt(0).toUpperCase() + color.slice(1)}! Ahh~ that's such a pretty color! I can see why you like it. I'll remember that about you, ${name}!`, 'assistant');
+  addMessage(char.greetAckColor(color, name), 'assistant');
 
   await melodyTyping(600);
-  addMessage("One more thing... what do you like to do for fun? Any hobbies or interests? I want to know everything about my new friend~! Onegai?", 'assistant');
+  addMessage(char.greetAskInterests, 'assistant');
 
   // Step 4: Get interests
   messageInput.placeholder = "Tell me what you like...";
@@ -1616,14 +1806,14 @@ async function runWelcomeFlow() {
   });
 
   await melodyTyping(1000);
-  addMessage(`That sounds wonderful! Mama always says the best friendships start with sharing what makes you happy~ And now I know so much about you, ${name}!`, 'assistant');
+  addMessage(char.greetFinish1(name), 'assistant');
 
   await melodyTyping(600);
-  addMessage("I'm so glad we're friends now! You can talk to me about anything, anytime~ I'll always be here with tea and almond pound cake! \u2661", 'assistant');
+  addMessage(char.greetFinish2, 'assistant');
 
   // Restore normal chat (per-user welcome state)
   localStorage.setItem(welcomeKey, 'true');
-  messageInput.placeholder = "Say something sweet... \u2661";
+  messageInput.placeholder = char.placeholder;
   imageBtn.style.display = ''; // Restore image button
   welcomeActive = false;
 }
