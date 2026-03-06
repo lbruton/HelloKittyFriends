@@ -873,11 +873,11 @@ html, body {
 }
 
 [data-theme="dark"] .chat-header {
-  background: linear-gradient(135deg, #CC5590, #AA4070);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--char-primary) 80%, #000) , color-mix(in srgb, var(--char-secondary) 70%, #000));
 }
 
 [data-theme="dark"] .message.user .message-bubble {
-  background: linear-gradient(135deg, #CC5590, #AA4070);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--char-primary) 80%, #000), color-mix(in srgb, var(--char-secondary) 70%, #000));
 }
 
 [data-theme="dark"] #messageInput {
