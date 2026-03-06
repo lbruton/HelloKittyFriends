@@ -1650,33 +1650,33 @@ html, body {
 }
 
 /* Light mode overrides for radar/storm cards */
-:root .radar-card {
+html:not([data-theme="dark"]) .radar-card {
   background: linear-gradient(135deg, #eef2ff 0%, #e8eeff 100%);
   border-color: rgba(100, 149, 237, 0.4);
 }
 
-:root .radar-card-header {
+html:not([data-theme="dark"]) .radar-card-header {
   color: #2a2a5a;
 }
 
-:root .radar-card-footer a {
+html:not([data-theme="dark"]) .radar-card-footer a {
   color: #4169e1;
 }
 
-:root .storm-stream-card {
+html:not([data-theme="dark"]) .storm-stream-card {
   background: linear-gradient(135deg, #fff0f0 0%, #ffe8e8 100%);
   border-color: rgba(200, 60, 60, 0.3);
 }
 
-:root .storm-stream-header {
+html:not([data-theme="dark"]) .storm-stream-header {
   color: #5a1a1a;
 }
 
-:root .storm-stream-desc {
+html:not([data-theme="dark"]) .storm-stream-desc {
   color: #774444;
 }
 
-:root .storm-stream-link {
+html:not([data-theme="dark"]) .storm-stream-link {
   background: rgba(200, 60, 60, 0.1);
   color: #cc3333;
   border-color: rgba(200, 60, 60, 0.3);

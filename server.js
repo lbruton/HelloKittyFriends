@@ -2358,7 +2358,7 @@ app.get('/api/radar', async (req, res) => {
  * Checks if a live stream is currently active.
  *
  * @route GET /api/storm-stream
- * @returns {Object} 200 - { channel, liveUrl, embedUrl, isLive }
+ * @returns {Object} 200 - { channel, channelUrl, liveUrl, isLive }
  */
 app.get('/api/storm-stream', async (req, res) => {
   const channelUrl = 'https://www.youtube.com/@NewsOn6Weather';
@@ -2369,7 +2369,8 @@ app.get('/api/storm-stream', async (req, res) => {
   try {
     const r = await fetch(liveUrl, {
       headers: { 'User-Agent': 'HelloKittyFriends/1.0' },
-      redirect: 'follow'
+      redirect: 'follow',
+      signal: AbortSignal.timeout(5000)
     });
     if (r.ok) {
       const html = await r.text();
@@ -2415,9 +2416,11 @@ app.get('/api/nws-discussion', async (req, res) => {
     if (!prodRes.ok) return res.json({ title: '', text: 'No discussion available', updated: null });
     const prod = await prodRes.json();
 
-    // Extract just the synopsis/short-term sections (first ~1500 chars)
+    // Truncate to ~1500 chars at a sentence boundary
     const fullText = prod.productText || '';
-    const synopsis = fullText.slice(0, 1500);
+    let synopsis = fullText.slice(0, 1500);
+    const lastPeriod = synopsis.lastIndexOf('.');
+    if (lastPeriod > 1000) synopsis = synopsis.slice(0, lastPeriod + 1);
 
     res.json({
       title: `NWS ${office} Forecast Discussion`,

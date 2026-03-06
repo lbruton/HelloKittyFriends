@@ -4,7 +4,7 @@
  * Implements app shell caching with stale-while-revalidate for static assets
  * and network-only for API and data routes. Cache versioning uses melody-vX.Y format.
  *
- * @version 3.1.0
+ * @version 3.2.0
  */
 
 /**

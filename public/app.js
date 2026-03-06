@@ -1424,7 +1424,11 @@ async function processReply(text, sources, wikiSource) {
 
         const header = document.createElement('div');
         header.className = 'radar-card-header';
-        header.innerHTML = `<span class="radar-icon">\u{1F4E1}</span> Live Radar — ${data.station}`;
+        const radarIcon = document.createElement('span');
+        radarIcon.className = 'radar-icon';
+        radarIcon.textContent = '\u{1F4E1}';
+        header.appendChild(radarIcon);
+        header.appendChild(document.createTextNode(` Live Radar \u2014 ${data.station}`));
         card.appendChild(header);
 
         const img = document.createElement('img');
@@ -1436,14 +1440,24 @@ async function processReply(text, sources, wikiSource) {
           img.style.display = 'none';
           const fallback = document.createElement('div');
           fallback.className = 'radar-fallback';
-          fallback.innerHTML = `<a href="https://radar.weather.gov/?settings=v1_eyJhZ2VuZGEiOnsiaWQiOm51bGwsImNlbnRlciI6Wy05NS45OSozNi4xNV0sInpvb20iOjh9fQ%3D%3D" target="_blank" rel="noopener">View radar on weather.gov \u2197</a>`;
+          const fbLink = document.createElement('a');
+          fbLink.href = 'https://radar.weather.gov/?settings=v1_eyJhZ2VuZGEiOnsiaWQiOm51bGwsImNlbnRlciI6Wy05NS45OSozNi4xNV0sInpvb20iOjh9fQ%3D%3D';
+          fbLink.target = '_blank';
+          fbLink.rel = 'noopener noreferrer';
+          fbLink.textContent = 'View radar on weather.gov \u2197';
+          fallback.appendChild(fbLink);
           card.appendChild(fallback);
         });
         card.appendChild(img);
 
         const footer = document.createElement('div');
         footer.className = 'radar-card-footer';
-        footer.innerHTML = `<a href="https://radar.weather.gov" target="_blank" rel="noopener">NWS Radar \u2197</a>`;
+        const footerLink = document.createElement('a');
+        footerLink.href = 'https://radar.weather.gov';
+        footerLink.target = '_blank';
+        footerLink.rel = 'noopener noreferrer';
+        footerLink.textContent = 'NWS Radar \u2197';
+        footer.appendChild(footerLink);
         card.appendChild(footer);
 
         lastBubble.appendChild(card);
@@ -1459,8 +1473,17 @@ async function processReply(text, sources, wikiSource) {
 
         const header = document.createElement('div');
         header.className = 'storm-stream-header';
-        const liveIndicator = data.isLive ? '<span class="live-badge">LIVE</span>' : '';
-        header.innerHTML = `<span class="storm-icon">\u{1F4FA}</span> ${data.channel} ${liveIndicator}`;
+        const stormIcon = document.createElement('span');
+        stormIcon.className = 'storm-icon';
+        stormIcon.textContent = '\u{1F4FA}';
+        header.appendChild(stormIcon);
+        header.appendChild(document.createTextNode(` ${data.channel} `));
+        if (data.isLive) {
+          const badge = document.createElement('span');
+          badge.className = 'live-badge';
+          badge.textContent = 'LIVE';
+          header.appendChild(badge);
+        }
         card.appendChild(header);
 
         const desc = document.createElement('div');
@@ -1473,7 +1496,7 @@ async function processReply(text, sources, wikiSource) {
         const link = document.createElement('a');
         link.href = data.liveUrl;
         link.target = '_blank';
-        link.rel = 'noopener';
+        link.rel = 'noopener noreferrer';
         link.className = 'storm-stream-link';
         link.textContent = data.isLive ? '\u{25B6}\u{FE0F} Watch Live Stream' : '\u{1F4FA} Open Weather Channel';
         card.appendChild(link);
@@ -2009,15 +2032,32 @@ async function checkWeatherAlerts() {
                    alert.event.toLowerCase().includes('winter') ? '\u{2744}\u{FE0F}' :
                    alert.event.toLowerCase().includes('heat') ? '\u{1F525}' : '\u{26A0}\u{FE0F}';
 
-      card.innerHTML = `
-        <div class="alert-header">
-          <span class="alert-icon">${icon}</span>
-          <span class="alert-event">${alert.event}</span>
-          <span class="alert-severity">${alert.severity}</span>
-        </div>
-        <div class="alert-headline">${alert.headline || ''}</div>
-        ${alert.instruction ? `<div class="alert-instruction">${alert.instruction}</div>` : ''}
-      `;
+      const alertHeader = document.createElement('div');
+      alertHeader.className = 'alert-header';
+      const alertIcon = document.createElement('span');
+      alertIcon.className = 'alert-icon';
+      alertIcon.textContent = icon;
+      const alertEvent = document.createElement('span');
+      alertEvent.className = 'alert-event';
+      alertEvent.textContent = alert.event;
+      const alertSev = document.createElement('span');
+      alertSev.className = 'alert-severity';
+      alertSev.textContent = alert.severity;
+      alertHeader.append(alertIcon, alertEvent, alertSev);
+      card.appendChild(alertHeader);
+
+      if (alert.headline) {
+        const headline = document.createElement('div');
+        headline.className = 'alert-headline';
+        headline.textContent = alert.headline;
+        card.appendChild(headline);
+      }
+      if (alert.instruction) {
+        const instruction = document.createElement('div');
+        instruction.className = 'alert-instruction';
+        instruction.textContent = alert.instruction;
+        card.appendChild(instruction);
+      }
       chatArea.appendChild(card);
     });
 
