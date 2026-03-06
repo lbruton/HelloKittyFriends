@@ -5,7 +5,7 @@
  * PWA install prompt, settings, and first-time welcome flow.
  * No framework — vanilla JavaScript with DOM manipulation.
  *
- * @version 2.5.1
+ * @version 2.6.0
  */
 
 // ─── DOM refs ───
@@ -388,7 +388,7 @@ function addMessage(text, role, imageDataURL, searchImageUrl, videoResult, sourc
 
   if (role === 'assistant') {
     const avatarImg = document.createElement('img');
-    const _char = activeCharacter || 'melody';
+    const _char = CHARACTER_CONFIG[activeCharacter] ? activeCharacter : 'melody';
     avatarImg.src = CHARACTER_CONFIG[_char].avatar;
     avatarImg.alt = CHARACTER_CONFIG[_char].name;
     avatarImg.className = 'message-avatar-img';
@@ -878,12 +878,12 @@ async function loadMemories() {
   // Update the memories tab header to reflect the active character
   const memoriesTabHeader = document.querySelector('#tabMemories .tab-header h2');
   if (memoriesTabHeader) {
-    const _charName = CHARACTER_CONFIG[activeCharacter || 'melody'].name;
+    const _charName = (CHARACTER_CONFIG[activeCharacter] || CHARACTER_CONFIG.melody).name;
     memoriesTabHeader.textContent = `${_charName}'s Memories`;
   }
   memoryList.innerHTML = '<p class="empty-state">Loading memories...</p>';
   try {
-    const _charId = activeCharacter || 'melody';
+    const _charId = CHARACTER_CONFIG[activeCharacter] ? activeCharacter : 'melody';
     const _memoriesUrl = `/api/memories?characterId=${_charId}${activeUser ? '&userId=' + activeUser : ''}`;
     const res = await fetch(_memoriesUrl);
     const memories = await res.json();

@@ -5,7 +5,7 @@
  * Brave Search (images/videos), game wiki integration (two-step pipeline),
  * image gallery with vision, relationship tracking, and welcome onboarding.
  *
- * @version 2.5.1
+ * @version 2.6.0
  */
 
 /**
@@ -20,7 +20,7 @@
 
 /**
  * @typedef {Object} ChatResponse
- * @property {string} reply - Melody's response text (may contain control tags: [IMAGE_SEARCH:], [VIDEO_SEARCH:], [REACTION:] — stripped client-side)
+ * @property {string} reply - The active character's response text (may contain control tags: [IMAGE_SEARCH:], [VIDEO_SEARCH:], [REACTION:] — stripped client-side)
  * @property {Object[]} sources - Google Search grounding sources
  * @property {string} sources[].title - Source page title
  * @property {string} sources[].url - Source page URL
@@ -575,7 +575,7 @@ async function searchMemories(query, userId) {
  * Search a character's agent memory track in mem0 for her own experiences.
  *
  * @param {string} query - Search query (typically the user's message)
- * @param {string|null} [characterId] - Character registry key (e.g., 'kuromi', 'retsuko'). When null, falls back to MEM0_AGENT_ID env var for backward compatibility.
+ * @param {string|null} [characterId] - Character registry key (e.g., 'kuromi', 'retsuko'). When null, falls back to the default Melody agent ID for backward compatibility.
  * @returns {Promise<Object[]>} Array of memory objects (max 5), empty on failure
  * @throws {Error} Swallowed — logs to console and returns empty array
  */
@@ -613,10 +613,10 @@ async function searchAgentMemories(query, characterId = null) {
  * but do not propagate.
  *
  * @param {string} userMessage - The user's message text
- * @param {string} assistantReply - Melody's response text
+ * @param {string} assistantReply - The active character's response text
  * @param {string} [userId] - User key (e.g., 'amelia', 'lonnie', 'guest'). When omitted, uses MEM0_USER_ID fallback. Guest users skip the user track save.
  * @param {Object} [meta] - Optional metadata context (source, sessionId, hasImage)
- * @param {Object|null} [character] - Character config object (from getCharacter()). When null, uses MEM0_AGENT_ID env var for backward compatibility.
+ * @param {Object|null} [character] - Character config object (from getCharacter()). When null, uses the default Melody agent ID for backward compatibility.
  * @returns {void}
  */
 function saveToMemory(userMessage, assistantReply, userId, meta = {}, character = null) {
@@ -924,7 +924,8 @@ app.post('/api/chat', async (req, res) => {
 
     // Save image if provided
     if (imageBase64) {
-      const ext = (imageMime || 'image/jpeg').split('/')[1] || 'jpg';
+      const ALLOWED_IMAGE_EXTS = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif', 'image/webp': 'webp' };
+      const ext = ALLOWED_IMAGE_EXTS[imageMime] || 'jpg';
       const id = randomUUID();
       const filename = `${id}.${ext}`;
       const buf = Buffer.from(imageBase64, 'base64');
