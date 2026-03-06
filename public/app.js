@@ -768,6 +768,8 @@ async function processReply(text, sources, wikiSource) {
   const funFactMatch = text.match(/\[FUN_FACT\]/);
   const quoteMatch = text.match(/\[QUOTE\]/);
   const gifMatch = text.match(/\[GIF:\s*(.+?)\]/);
+  const radarMatch = text.match(/\[RADAR\]/);
+  const stormStreamMatch = text.match(/\[STORM_STREAM\]/);
 
   // Clean tags from display text
   let displayText = text
@@ -796,6 +798,8 @@ async function processReply(text, sources, wikiSource) {
     .replace(/\[FUN_FACT\]/g, '')
     .replace(/\[QUOTE\]/g, '')
     .replace(/\[GIF:\s*.+?\]/g, '')
+    .replace(/\[RADAR\]/g, '')
+    .replace(/\[STORM_STREAM\]/g, '')
     .trim();
 
   let searchImageUrl = null;
@@ -1410,6 +1414,74 @@ async function processReply(text, sources, wikiSource) {
           }
         }).catch(() => {});
     }
+
+    // Weather Radar (HKF-34)
+    if (radarMatch) {
+      fetch('/api/radar').then(r => r.json()).then(data => {
+        if (!data.nwsGif) return;
+        const card = document.createElement('div');
+        card.className = 'api-card radar-card';
+
+        const header = document.createElement('div');
+        header.className = 'radar-card-header';
+        header.innerHTML = `<span class="radar-icon">\u{1F4E1}</span> Live Radar — ${data.station}`;
+        card.appendChild(header);
+
+        const img = document.createElement('img');
+        img.src = data.nwsGif;
+        img.alt = `NWS Radar Loop - ${data.station}`;
+        img.className = 'radar-gif';
+        img.loading = 'lazy';
+        img.addEventListener('error', () => {
+          img.style.display = 'none';
+          const fallback = document.createElement('div');
+          fallback.className = 'radar-fallback';
+          fallback.innerHTML = `<a href="https://radar.weather.gov/?settings=v1_eyJhZ2VuZGEiOnsiaWQiOm51bGwsImNlbnRlciI6Wy05NS45OSozNi4xNV0sInpvb20iOjh9fQ%3D%3D" target="_blank" rel="noopener">View radar on weather.gov \u2197</a>`;
+          card.appendChild(fallback);
+        });
+        card.appendChild(img);
+
+        const footer = document.createElement('div');
+        footer.className = 'radar-card-footer';
+        footer.innerHTML = `<a href="https://radar.weather.gov" target="_blank" rel="noopener">NWS Radar \u2197</a>`;
+        card.appendChild(footer);
+
+        lastBubble.appendChild(card);
+        chatArea.scrollTop = chatArea.scrollHeight;
+      }).catch(() => {});
+    }
+
+    // Storm Stream (HKF-34)
+    if (stormStreamMatch) {
+      fetch('/api/storm-stream').then(r => r.json()).then(data => {
+        const card = document.createElement('div');
+        card.className = 'api-card storm-stream-card';
+
+        const header = document.createElement('div');
+        header.className = 'storm-stream-header';
+        const liveIndicator = data.isLive ? '<span class="live-badge">LIVE</span>' : '';
+        header.innerHTML = `<span class="storm-icon">\u{1F4FA}</span> ${data.channel} ${liveIndicator}`;
+        card.appendChild(header);
+
+        const desc = document.createElement('div');
+        desc.className = 'storm-stream-desc';
+        desc.textContent = data.isLive
+          ? 'Severe weather coverage is live right now!'
+          : 'Local severe weather coverage — check for live updates during storms.';
+        card.appendChild(desc);
+
+        const link = document.createElement('a');
+        link.href = data.liveUrl;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        link.className = 'storm-stream-link';
+        link.textContent = data.isLive ? '\u{25B6}\u{FE0F} Watch Live Stream' : '\u{1F4FA} Open Weather Channel';
+        card.appendChild(link);
+
+        lastBubble.appendChild(card);
+        chatArea.scrollTop = chatArea.scrollHeight;
+      }).catch(() => {});
+    }
   }
 }
 
@@ -1909,73 +1981,79 @@ async function runWelcomeFlow() {
  * @returns {Promise<void>}
  */
 async function checkWeatherAlerts() {
-  if (!navigator.geolocation) return;
+  // Try browser geolocation first, fall back to server default location
+  const fetchAlerts = async (lat, lon) => {
+    const url = lat && lon
+      ? `/api/weather-alerts?lat=${lat}&lon=${lon}`
+      : '/api/weather-alerts';
+    const res = await fetch(url);
+    const data = await res.json();
+    if (!data.alerts || !data.alerts.length) return;
 
-  navigator.geolocation.getCurrentPosition(async (pos) => {
-    try {
-      const { latitude, longitude } = pos.coords;
-      const res = await fetch(`/api/weather-alerts?lat=${latitude}&lon=${longitude}`);
-      const data = await res.json();
-      if (!data.alerts || !data.alerts.length) return;
+    const severe = data.alerts.filter(a =>
+      a.severity === 'Extreme' || a.severity === 'Severe'
+    );
+    if (!severe.length) return;
 
-      // Only show Severe/Extreme alerts automatically
-      const severe = data.alerts.filter(a =>
-        a.severity === 'Extreme' || a.severity === 'Severe'
+    const charName = (CHARACTER_CONFIG[activeCharacter] || CHARACTER_CONFIG.melody).name;
+    severe.forEach(alert => {
+      const card = document.createElement('div');
+      card.className = `weather-alert-card severity-${alert.severity.toLowerCase()}`;
+
+      const icon = alert.event.toLowerCase().includes('tornado') ? '\u{1F32A}\u{FE0F}' :
+                   alert.event.toLowerCase().includes('thunder') ? '\u{26A1}' :
+                   alert.event.toLowerCase().includes('flood') ? '\u{1F30A}' :
+                   alert.event.toLowerCase().includes('winter') ? '\u{2744}\u{FE0F}' :
+                   alert.event.toLowerCase().includes('heat') ? '\u{1F525}' : '\u{26A0}\u{FE0F}';
+
+      card.innerHTML = `
+        <div class="alert-header">
+          <span class="alert-icon">${icon}</span>
+          <span class="alert-event">${alert.event}</span>
+          <span class="alert-severity">${alert.severity}</span>
+        </div>
+        <div class="alert-headline">${alert.headline || ''}</div>
+        ${alert.instruction ? `<div class="alert-instruction">${alert.instruction}</div>` : ''}
+      `;
+      chatArea.appendChild(card);
+    });
+
+    const topAlert = severe[0];
+    const alertComment = document.createElement('div');
+    alertComment.className = 'message assistant';
+    const avatar = document.createElement('div');
+    avatar.className = 'message-avatar';
+    const avatarImg = document.createElement('img');
+    avatarImg.src = (CHARACTER_CONFIG[activeCharacter] || CHARACTER_CONFIG.melody).avatar;
+    avatarImg.alt = charName;
+    avatarImg.className = 'message-avatar-img';
+    avatar.appendChild(avatarImg);
+    const bubble = document.createElement('div');
+    bubble.className = 'message-bubble';
+    bubble.textContent = activeCharacter === 'kuromi'
+      ? `Hey! There's a ${topAlert.event} alert for your area. Even I know when to take cover — stay safe, got it?!`
+      : activeCharacter === 'retsuko'
+      ? `Hey... there's a ${topAlert.event} alert right now. Please be careful and stay safe! I worry about you.`
+      : `Oh no~! There's a ${topAlert.event} alert for your area! Mama always says safety comes first — please be careful! \u2661`;
+    alertComment.appendChild(avatar);
+    alertComment.appendChild(bubble);
+    chatArea.appendChild(alertComment);
+    chatArea.scrollTop = chatArea.scrollHeight;
+  };
+
+  try {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => fetchAlerts(pos.coords.latitude, pos.coords.longitude).catch(() => {}),
+        () => fetchAlerts().catch(() => {}),
+        { timeout: 5000 }
       );
-      if (!severe.length) return;
-
-      // Build alert card
-      const charName = (CHARACTER_CONFIG[activeCharacter] || CHARACTER_CONFIG.melody).name;
-      severe.forEach(alert => {
-        const card = document.createElement('div');
-        card.className = `weather-alert-card severity-${alert.severity.toLowerCase()}`;
-
-        const icon = alert.event.toLowerCase().includes('tornado') ? '\u{1F32A}\u{FE0F}' :
-                     alert.event.toLowerCase().includes('thunder') ? '\u{26A1}' :
-                     alert.event.toLowerCase().includes('flood') ? '\u{1F30A}' :
-                     alert.event.toLowerCase().includes('winter') ? '\u{2744}\u{FE0F}' :
-                     alert.event.toLowerCase().includes('heat') ? '\u{1F525}' : '\u{26A0}\u{FE0F}';
-
-        card.innerHTML = `
-          <div class="alert-header">
-            <span class="alert-icon">${icon}</span>
-            <span class="alert-event">${alert.event}</span>
-            <span class="alert-severity">${alert.severity}</span>
-          </div>
-          <div class="alert-headline">${alert.headline || ''}</div>
-          ${alert.instruction ? `<div class="alert-instruction">${alert.instruction}</div>` : ''}
-        `;
-        chatArea.appendChild(card);
-      });
-
-      // Character comments on the alert
-      const topAlert = severe[0];
-      const alertComment = document.createElement('div');
-      alertComment.className = 'message assistant';
-      const avatar = document.createElement('div');
-      avatar.className = 'message-avatar';
-      const avatarImg = document.createElement('img');
-      avatarImg.src = (CHARACTER_CONFIG[activeCharacter] || CHARACTER_CONFIG.melody).avatar;
-      avatarImg.alt = charName;
-      avatarImg.className = 'message-avatar-img';
-      avatar.appendChild(avatarImg);
-      const bubble = document.createElement('div');
-      bubble.className = 'message-bubble';
-      bubble.textContent = activeCharacter === 'kuromi'
-        ? `Hey! There's a ${topAlert.event} alert for your area. Even I know when to take cover — stay safe, got it?!`
-        : activeCharacter === 'retsuko'
-        ? `Hey... there's a ${topAlert.event} alert right now. Please be careful and stay safe! I worry about you.`
-        : `Oh no~! There's a ${topAlert.event} alert for your area! Mama always says safety comes first — please be careful! \u2661`;
-      alertComment.appendChild(avatar);
-      alertComment.appendChild(bubble);
-      chatArea.appendChild(alertComment);
-      chatArea.scrollTop = chatArea.scrollHeight;
-    } catch {
-      // Silently fail — alerts are a nice-to-have
+    } else {
+      await fetchAlerts();
     }
-  }, () => {
-    // Geolocation denied — skip alerts silently
-  }, { timeout: 5000 });
+  } catch {
+    // Silently fail — alerts are a nice-to-have
+  }
 }
 
 // ─── Init ───

@@ -12,7 +12,7 @@
  * Format: melody-vMAJOR.MINOR.PATCH (e.g., melody-v2.6.0).
  * @type {string}
  */
-const CACHE_NAME = 'melody-v3.1.0';
+const CACHE_NAME = 'melody-v3.2.0';
 const APP_SHELL = [
   '/',
   '/index.html',
