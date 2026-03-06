@@ -1995,7 +1995,10 @@ async function checkWeatherAlerts() {
     );
     if (!severe.length) return;
 
-    const charName = (CHARACTER_CONFIG[activeCharacter] || CHARACTER_CONFIG.melody).name;
+    const charConfig = CHARACTER_CONFIG[activeCharacter] || CHARACTER_CONFIG.melody;
+    const charName = charConfig.name;
+
+    // Show alert cards
     severe.forEach(alert => {
       const card = document.createElement('div');
       card.className = `weather-alert-card severity-${alert.severity.toLowerCase()}`;
@@ -2018,24 +2021,73 @@ async function checkWeatherAlerts() {
       chatArea.appendChild(card);
     });
 
+    // Character comment with radar + stream offers
     const topAlert = severe[0];
     const alertComment = document.createElement('div');
     alertComment.className = 'message assistant';
     const avatar = document.createElement('div');
     avatar.className = 'message-avatar';
     const avatarImg = document.createElement('img');
-    avatarImg.src = (CHARACTER_CONFIG[activeCharacter] || CHARACTER_CONFIG.melody).avatar;
+    avatarImg.src = charConfig.avatar;
     avatarImg.alt = charName;
     avatarImg.className = 'message-avatar-img';
     avatar.appendChild(avatarImg);
     const bubble = document.createElement('div');
     bubble.className = 'message-bubble';
     bubble.textContent = activeCharacter === 'kuromi'
-      ? `Hey! There's a ${topAlert.event} alert for your area. Even I know when to take cover — stay safe, got it?!`
+      ? `Hey! There's a ${topAlert.event} alert. Even I know when to take cover. I pulled up the radar and the local news is streaming — don't say I never did anything nice for you!`
       : activeCharacter === 'retsuko'
-      ? `Hey... there's a ${topAlert.event} alert right now. Please be careful and stay safe! I worry about you.`
-      : `Oh no~! There's a ${topAlert.event} alert for your area! Mama always says safety comes first — please be careful! \u2661`;
+      ? `Hey... there's a ${topAlert.event} alert right now. I pulled up the radar so you can see what's coming, and the local weather team is streaming. Please stay safe! I worry about you.`
+      : `Oh no~! There's a ${topAlert.event} alert! Mama always says safety comes first! I brought up the radar so you can watch the storm, and the local news is covering it live. Please be careful! \u2661`;
     alertComment.appendChild(avatar);
+    alertComment.appendChild(bubble);
+
+    // Fetch radar and storm stream in parallel, append to bubble
+    const [radarData, streamData] = await Promise.all([
+      fetch('/api/radar').then(r => r.json()).catch(() => null),
+      fetch('/api/storm-stream').then(r => r.json()).catch(() => null)
+    ]);
+
+    // Radar card inside the bubble
+    if (radarData?.nwsGif) {
+      const radarCard = document.createElement('div');
+      radarCard.className = 'api-card radar-card';
+      radarCard.innerHTML = `
+        <div class="radar-card-header"><span class="radar-icon">\u{1F4E1}</span> Live Radar \u2014 ${radarData.station}</div>
+      `;
+      const radarImg = document.createElement('img');
+      radarImg.src = radarData.nwsGif;
+      radarImg.alt = `NWS Radar Loop - ${radarData.station}`;
+      radarImg.className = 'radar-gif';
+      radarImg.loading = 'lazy';
+      radarImg.addEventListener('error', () => radarImg.remove());
+      radarCard.appendChild(radarImg);
+      const radarFooter = document.createElement('div');
+      radarFooter.className = 'radar-card-footer';
+      radarFooter.innerHTML = `<a href="https://radar.weather.gov" target="_blank" rel="noopener">NWS Radar \u2197</a>`;
+      radarCard.appendChild(radarFooter);
+      bubble.appendChild(radarCard);
+    }
+
+    // Storm stream card inside the bubble
+    if (streamData) {
+      const streamCard = document.createElement('div');
+      streamCard.className = 'api-card storm-stream-card';
+      const liveIndicator = streamData.isLive ? '<span class="live-badge">LIVE</span>' : '';
+      streamCard.innerHTML = `
+        <div class="storm-stream-header"><span class="storm-icon">\u{1F4FA}</span> ${streamData.channel} ${liveIndicator}</div>
+        <div class="storm-stream-desc">${streamData.isLive ? 'Severe weather coverage is live right now!' : 'Local weather coverage \u2014 check for live updates during storms.'}</div>
+      `;
+      const streamLink = document.createElement('a');
+      streamLink.href = streamData.liveUrl;
+      streamLink.target = '_blank';
+      streamLink.rel = 'noopener';
+      streamLink.className = 'storm-stream-link';
+      streamLink.textContent = streamData.isLive ? '\u{25B6}\u{FE0F} Watch Live Stream' : '\u{1F4FA} Open Weather Channel';
+      streamCard.appendChild(streamLink);
+      bubble.appendChild(streamCard);
+    }
+
     alertComment.appendChild(bubble);
     chatArea.appendChild(alertComment);
     chatArea.scrollTop = chatArea.scrollHeight;
