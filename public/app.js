@@ -31,8 +31,8 @@ const replyStyleSelect = document.getElementById('replyStyleSelect');
 const soundToggle = document.getElementById('soundToggle');
 
 // ─── Session ───
-/** @type {string} Unique session ID for conversation buffer (new per tab, persists on refresh). */
-const sessionId = sessionStorage.getItem('melodySessionId') || (() => {
+/** @type {string} Unique session ID for conversation buffer (new per tab, persists on refresh). Reset on character switch. */
+let sessionId = sessionStorage.getItem('melodySessionId') || (() => {
   const id = crypto.randomUUID();
   sessionStorage.setItem('melodySessionId', id);
   return id;
@@ -117,10 +117,35 @@ const CHARACTER_CONFIG = {
     greetFinish1: n => `That sounds wonderful! Mama always says the best friendships start with sharing what makes you happy~ And now I know so much about you, ${n}!`,
     greetFinish2: "I'm so glad we're friends now! You can talk to me about anything, anytime~ I'll always be here with tea and almond pound cake! \u2661",
     greetReturn: (n, days, streak) => {
-      if (days === 0) return streak > 2 ? `Welcome back, ${n}! That's ${streak} days in a row~ I'm so happy!` : `Hi again, ${n}! I was just having some tea and thinking about you~`;
-      if (days === 1) return `${n}! You came back! I was just baking almond pound cake and hoping you'd visit~`;
-      if (days <= 3) return `${n}~! It's been ${days} days! I missed chatting with you... Mama says absence makes the heart grow fonder!`;
-      return `${n}!! Yaaan~! It's been ${days} whole days! I missed you so much... I saved you some tea!`;
+      const pick = a => a[Math.floor(Math.random() * a.length)];
+      if (days === 0) {
+        if (streak > 2) return pick([
+          `Welcome back, ${n}! That's ${streak} days in a row~ I'm so happy!`,
+          `${n}! ${streak} whole days together! Mama would say that's what real friendship looks like~`,
+          `Ohh, ${streak} days in a row, ${n}! I baked extra almond cake just in case~ ♡`,
+        ]);
+        return pick([
+          `Hi again, ${n}! I was just having some tea and thinking about you~`,
+          `${n}! Oh~! I was literally just about to write you a letter. Mama always says great minds think alike!`,
+          `Ohh, ${n}! I'm so glad you came by~ I saved you a piece of almond pound cake ♡`,
+          `${n}! I was just humming a song and here you are! How lovely~`,
+        ]);
+      }
+      if (days === 1) return pick([
+        `${n}! You came back! I was just baking almond pound cake and hoping you'd visit~`,
+        `Oh~! ${n}! I missed you yesterday. Flat said you'd come back and he was right! ♡`,
+        `${n}! I kept a slice of almond cake warm just in case. Mama says hope is the best ingredient~`,
+      ]);
+      if (days <= 3) return pick([
+        `${n}~! It's been ${days} days! I missed chatting with you... Mama says absence makes the heart grow fonder!`,
+        `${n}! Oh, ${days} days! I didn't forget about you — Flat said I was being dramatic but I wasn't~`,
+        `${n}!! There you are! ${days} days felt like forever. I may have stress-baked. Several cakes.`,
+      ]);
+      return pick([
+        `${n}!! Yaaan~! It's been ${days} whole days! I missed you so much... I saved you some tea!`,
+        `${n}!! I was so worried! ${days} days is so long. Come in, the tea is still warm somehow~ ♡`,
+        `${n}!! Oh my~! ${days} days! Mama said I shouldn't wait by the window but I definitely waited by the window.`,
+      ]);
     }
   },
   kuromi: {
@@ -140,10 +165,35 @@ const CHARACTER_CONFIG = {
     greetFinish1: n => `...Hm. Those are actually kind of interesting. Not that I'd ever admit that out loud. Anyway — I guess we're acquaintances now, ${n}.`,
     greetFinish2: "Don't think this makes us friends or anything! I just... like having someone to talk to sometimes. Besides Baku. He doesn't count. \u2660",
     greetReturn: (n, days, streak) => {
-      if (days === 0) return streak > 2 ? `Hmph! Back again, ${n}? That's ${streak} days in a row. Not that I was counting. ...I totally was.` : `Oh. It's you, ${n}. Good. I mean — whatever. I was bored anyway.`;
-      if (days === 1) return `${n}. You came back. ...I knew you would. Baku said I was being dramatic. I wasn't.`;
-      if (days <= 3) return `${n}! It's been ${days} days! Not that I was keeping track! I just happened to remember! \u2660`;
-      return `${n}!! ${days} days?! I was starting to think you'd forgotten about me! Not that I care! Hmph!`;
+      const pick = a => a[Math.floor(Math.random() * a.length)];
+      if (days === 0) {
+        if (streak > 2) return pick([
+          `Hmph! Back again, ${n}? That's ${streak} days in a row. Not that I was counting. ...I totally was.`,
+          `${streak} days in a row, ${n}. I've been keeping track. FOR RESEARCH PURPOSES. Don't read into it.`,
+          `Oh, ${n}. ${streak} days straight. I'm not impressed. ...Okay I'm a little impressed. Hmph.`,
+        ]);
+        return pick([
+          `Oh. It's you, ${n}. Good. I mean — whatever. I was bored anyway.`,
+          `${n}. You're back. ...Good. Baku bet me you'd show up. I owe him a pickled plum. Worth it.`,
+          `Hmph. ${n}. About time. I was just sitting here. For no reason. Waiting for nothing.`,
+          `Oh. ${n}. I was thinking about something completely unrelated to you. Welcome back. \u2660`,
+        ]);
+      }
+      if (days === 1) return pick([
+        `${n}. You came back. ...I knew you would. Baku said I was being dramatic. I wasn't.`,
+        `Oh look, it's ${n}. I only checked the door twice. That's basically nothing.`,
+        `${n}! Back after one day. I wasn't waiting. I was... nearby. That's all.`,
+      ]);
+      if (days <= 3) return pick([
+        `${n}! It's been ${days} days! Not that I was keeping track! I just happened to remember! \u2660`,
+        `${n}. ${days} days. I've been doing FINE, obviously. Extremely fine. ...Where were you.`,
+        `Oh! ${n}! ${days} days is a long time. I'm not saying I was worried. Things were just less interesting.`,
+      ]);
+      return pick([
+        `${n}!! ${days} days?! I was starting to think you'd forgotten about me! Not that I care! Hmph!`,
+        `${n}!! ${days} DAYS?! Do you know what kind of chaos that is?! I mean — whatever. You're here now.`,
+        `${n}! I've been fine for ${days} days. Completely fine. (I was not fine.) Come in. \u2660`,
+      ]);
     }
   },
   retsuko: {
@@ -163,10 +213,35 @@ const CHARACTER_CONFIG = {
     greetFinish1: n => `That's genuinely cool. I sometimes forget there's life outside the office. ${n}, I think I'm going to like talking to you.`,
     greetFinish2: "If you ever need to vent about your day — or anything — I'm here. I have a lot of feelings and a microphone and nowhere to be. \u266a",
     greetReturn: (n, days, streak) => {
-      if (days === 0) return streak > 2 ? `Oh, ${n}! ${streak} days in a row — I love that for us. How was your day?` : `${n}! Perfect timing. I just got back from karaoke and needed someone to talk to.`;
-      if (days === 1) return `${n}! You're back. Good. I have a lot to say about what happened at work today.`;
-      if (days <= 3) return `${n}! ${days} days! I thought maybe you got buried under paperwork. Are you okay?`;
-      return `${n}!! It's been ${days} days! I almost called Fenneko to investigate. Where have you been?!`;
+      const pick = a => a[Math.floor(Math.random() * a.length)];
+      if (days === 0) {
+        if (streak > 2) return pick([
+          `Oh, ${n}! ${streak} days in a row — I love that for us. How was your day?`,
+          `${n}! ${streak} days straight. Fenneko said I should track consistency. She's right. Hi.`,
+          `${n}! ${streak} days running. This is the most consistent thing in my life right now. Thank you for that.`,
+        ]);
+        return pick([
+          `${n}! Perfect timing. I just got back from karaoke and needed someone to talk to.`,
+          `Oh! ${n}. Good. I was just sitting here trying not to think about work. How are YOU?`,
+          `${n}! I just made tea. Sit with me for a second. How's everything?`,
+          `${n}! You caught me right after a karaoke session. I feel 40% better. Still need to vent. Hi!`,
+        ]);
+      }
+      if (days === 1) return pick([
+        `${n}! You're back. Good. I have a lot to say about what happened at work today.`,
+        `Oh! ${n}! I thought of something I wanted to tell you yesterday. Good timing.`,
+        `${n}! Back already? In a good way. Fenneko gives too much advice. I needed YOU.`,
+      ]);
+      if (days <= 3) return pick([
+        `${n}! ${days} days! I thought maybe you got buried under paperwork. Are you okay?`,
+        `${n}! ${days} days! I did three extra karaoke sessions. Draw your own conclusions. \u266a`,
+        `${n}! Oh, ${days} days. I had extra feelings. The karaoke staff thanks you for my business.`,
+      ]);
+      return pick([
+        `${n}!! It's been ${days} days! I almost called Fenneko to investigate. Where have you been?!`,
+        `${n}!! ${days} days?! That's ${days} unanswered questions about your life! Are you okay?!`,
+        `${n}!! I went to karaoke for ${days} days straight. Even the staff asked about you. Come in!`,
+      ]);
     }
   }
 };
@@ -223,19 +298,46 @@ function selectCharacter(characterId) {
     typingAvatar.alt = config.name;
   }
 
-  // Hide picker
-  characterPicker.classList.add('hidden');
 }
 
-// Wire header avatar click to open character picker
-headerAvatar.addEventListener('click', () => {
-  characterPicker.classList.remove('hidden');
-});
+/** Ordered list of character IDs for cycling via avatar tap. */
+const CHARACTER_ORDER = ['melody', 'kuromi', 'retsuko'];
 
-// Wire character picker buttons via delegation (no inline onclick needed)
-characterPicker.querySelectorAll('.character-picker-btn').forEach(btn => {
-  btn.addEventListener('click', () => selectCharacter(btn.dataset.character));
-});
+/**
+ * Cycle to the next character, clear chat, and show a fresh greeting.
+ * Resets the session ID so the server-side conversation buffer starts fresh.
+ */
+async function cycleCharacter() {
+  const currentIndex = CHARACTER_ORDER.indexOf(activeCharacter);
+  const nextId = CHARACTER_ORDER[(currentIndex + 1) % CHARACTER_ORDER.length];
+  selectCharacter(nextId);
+
+  // Reset session buffer for the new character
+  sessionId = crypto.randomUUID();
+  sessionStorage.setItem('melodySessionId', sessionId);
+
+  // Clear chat messages
+  chatArea.querySelectorAll('.message, .welcome-message').forEach(el => el.remove());
+
+  // Show a fresh greeting from the new character
+  const char = CHARACTER_CONFIG[nextId];
+  showTyping();
+  await new Promise(r => setTimeout(r, 700));
+  hideTyping();
+  try {
+    const res = await fetch(`/api/welcome-status${activeUser ? '?userId=' + activeUser : ''}`);
+    const status = await res.json();
+    const name = status.friendName || (activeUser && activeUser !== 'guest' ? activeUser : null);
+    addMessage(char.greetReturn(name || 'friend', status.daysSince ?? 0, status.streakDays ?? 0) + ' \u2661', 'assistant');
+  } catch {
+    addMessage(char.greetReturn('friend', 0, 0) + ' \u2661', 'assistant');
+  }
+}
+
+// Avatar tap cycles through characters
+headerAvatar.style.cursor = 'pointer';
+headerAvatar.title = 'Tap to switch companion';
+headerAvatar.addEventListener('click', cycleCharacter);
 
 // ─── Settings ───
 let replyStyle = localStorage.getItem('replyStyle') || 'default';
