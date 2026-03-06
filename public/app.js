@@ -766,6 +766,7 @@ async function processReply(text, sources, wikiSource) {
   const spacePicMatch = text.match(/\[SPACE_PIC\]/);
   const funFactMatch = text.match(/\[FUN_FACT\]/);
   const quoteMatch = text.match(/\[QUOTE\]/);
+  const gifMatch = text.match(/\[GIF:\s*(.+?)\]/);
 
   // Clean tags from display text
   let displayText = text
@@ -793,6 +794,7 @@ async function processReply(text, sources, wikiSource) {
     .replace(/\[SPACE_PIC\]/g, '')
     .replace(/\[FUN_FACT\]/g, '')
     .replace(/\[QUOTE\]/g, '')
+    .replace(/\[GIF:\s*.+?\]/g, '')
     .trim();
 
   let searchImageUrl = null;
@@ -1326,6 +1328,35 @@ async function processReply(text, sources, wikiSource) {
           chatArea.scrollTop = chatArea.scrollHeight;
         }
       }).catch(() => {});
+    }
+
+    // GIF (Giphy)
+    if (gifMatch) {
+      fetch(`/api/gif?q=${encodeURIComponent(gifMatch[1])}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.results?.length) {
+            const pick = data.results[Math.floor(Math.random() * data.results.length)];
+            if (pick.url) {
+              const card = document.createElement('div');
+              card.className = 'api-card image-card gif-card';
+              const img = document.createElement('img');
+              img.src = pick.url;
+              img.alt = pick.title || gifMatch[1];
+              img.loading = 'lazy';
+              img.style.maxHeight = '180px';
+              img.style.width = 'auto';
+              img.addEventListener('error', () => card.remove());
+              card.appendChild(img);
+              const caption = document.createElement('span');
+              caption.className = 'api-card-caption';
+              caption.textContent = `via Giphy`;
+              card.appendChild(caption);
+              lastBubble.appendChild(card);
+              chatArea.scrollTop = chatArea.scrollHeight;
+            }
+          }
+        }).catch(() => {});
     }
   }
 }

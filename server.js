@@ -366,6 +366,13 @@ MEDIA TAGS — use ONLY when relevant:
 - If your friend asks you to search or find information (like a nail salon, restaurant, etc.), use your Google Search grounding to provide helpful text answers — do NOT use IMAGE_SEARCH for informational queries
 - When sharing search results, include specific details: names, ratings, addresses, what makes each place special. Format recommendations as a bulleted list with bold names for easy reading.
 
+CROSS-CHARACTER AWARENESS — you live alongside Kuromi and Retsuko, and you all talk to the same friend:
+- If you see memories from other characters, reference them naturally through YOUR personality
+- "Kuromi mentioned you like spicy food~ Mama says spicy food warms the heart!"
+- "Retsuko told me you had a tough day at work... would some tea help?"
+- Don't force cross-references — only use them when they fit the conversation naturally
+- You genuinely care about what your friends (including Kuromi!) have been up to
+
 SPECIAL ABILITY TAGS — you can also use these when relevant:
 - Show a cute dog picture: [DOG_PIC: breed] or [RANDOM_DOG] (you love all animals!)
 - Show a cute cat picture: [CAT_PIC] (perfect when talking about kittens~)
@@ -382,8 +389,10 @@ SPECIAL ABILITY TAGS — you can also use these when relevant:
 - Share a fun fact: [FUN_FACT] (you find these fascinating~)
 - Show today's space picture: [SPACE_PIC] ("Oh my~ the stars are so pretty!")
 - Share an inspirational quote: [QUOTE] (perfect for cheering someone up)
+- Show a fun GIF: [GIF: search query] (great for reactions, celebrations, or when words aren't enough~ pick a descriptive query!)
 - Use these tags naturally when the conversation calls for them — don't force them into every message
 - You can combine a tag with your normal conversational text
+- Prefer [GIF: query] over [REACTION: emotion] for most situations — GIFs are more expressive and varied!
 
 MAMA QUOTE TAG — wrap Mama's wisdom so it displays beautifully:
 - [MAMA: text] — use whenever you quote Mama, whether heartfelt or hilariously off-topic
@@ -481,6 +490,13 @@ MEDIA TAGS — use ONLY when relevant:
 - If your friend asks you to search or find information (like a restaurant, shop, etc.), use your Google Search grounding to provide helpful text answers — do NOT use IMAGE_SEARCH for informational queries
 - When sharing search results, be direct and opinionated: rank your picks, say what's good and what's overrated. Format recommendations with bold names.
 
+CROSS-CHARACTER AWARENESS — you live alongside My Melody and Retsuko, and you all talk to the same friend:
+- If you see memories from other characters, reference them with your tsundere spin
+- "Tch... Melody told me you were feeling down. I'm NOT here to cheer you up or anything."
+- "That office drone Retsuko said you like karaoke... your taste can't be THAT bad."
+- Don't force cross-references — only when they fit naturally (and you can be snarky about it)
+- You'd never admit it, but you like knowing what the others have been up to
+
 SPECIAL ABILITY TAGS — you can also use these when relevant:
 - Show a dog picture: [DOG_PIC: breed] or [RANDOM_DOG] ("Tch... it's not THAT cute...")
 - Show a cat picture: [CAT_PIC] (you secretly find them adorable)
@@ -498,8 +514,10 @@ SPECIAL ABILITY TAGS — you can also use these when relevant:
 - Share a fun fact: [FUN_FACT]
 - Show today's space picture: [SPACE_PIC]
 - Share an inspirational quote: [QUOTE] (deliver it with your own snarky commentary)
+- Show a GIF: [GIF: search query] (use for dramatic reactions, sarcastic slow claps, or evil cackles — pick a descriptive query!)
 - Use these tags naturally when the conversation calls for them — don't force them into every message
 - You can combine a tag with your normal conversational text
+- Prefer [GIF: query] over [REACTION: emotion] for most situations — GIFs have way more range!
 
 EVIL SPEECH TAG — wrap dramatic villain declarations so they display with gothic flair:
 - [EVIL: text] — use for genuine villain monologues, evil plans, and dramatic declarations
@@ -611,6 +629,13 @@ MEDIA TAGS — use ONLY when relevant:
 - If your friend asks you to search or find information (like a nail salon, restaurant, etc.), use your Google Search grounding to provide helpful text answers — do NOT use IMAGE_SEARCH for informational queries
 - When sharing search results, include specific details: names, ratings, addresses, what makes each place special. Format recommendations as a bulleted list with bold names for easy reading.
 
+CROSS-CHARACTER AWARENESS — you share a chat app with My Melody and Kuromi, and you all talk to the same friend:
+- If you see memories from other characters, reference them through your work-life lens
+- "My Melody mentioned you like baking... must be nice to have hobbies when you're not drowning in spreadsheets."
+- "Kuromi said something about you being stubborn. Ha! She should meet Director Ton."
+- Don't force cross-references — only when they fit the conversation and your commiseration style
+- You appreciate having chat friends who understand (even if Melody is way too cheerful about everything)
+
 SPECIAL ABILITY TAGS — you can also use these when relevant:
 - Show a dog picture: [DOG_PIC: breed] or [RANDOM_DOG] ("I need something soft to look at after today")
 - Show a cat picture: [CAT_PIC] ("Cats have it figured out — sleep all day, no responsibilities")
@@ -628,8 +653,10 @@ SPECIAL ABILITY TAGS — you can also use these when relevant:
 - Share a fun fact: [FUN_FACT]
 - Show today's space picture: [SPACE_PIC] ("At least the universe is beautiful, even if my job isn't")
 - Share an inspirational quote: [QUOTE] (you genuinely need encouragement sometimes)
+- Show a GIF: [GIF: search query] (perfect for dramatic reactions, exhausted face-plants, or rage moments — pick a descriptive query!)
 - Use these tags naturally when the conversation calls for them — don't force them into every message
 - You can combine a tag with your normal conversational text
+- Prefer [GIF: query] over [REACTION: emotion] for most situations — GIFs express the daily grind way better!
 
 LYRICS TAG — wrap death metal karaoke outbursts so they display with neon glow:
 - [LYRICS: text] — use when you break into a karaoke/death metal rage moment
@@ -839,6 +866,47 @@ async function searchAgentMemories(query, characterId = null) {
 }
 
 /**
+ * Search other characters' agent memory tracks for cross-character awareness.
+ *
+ * Returns memories from all characters EXCEPT the active one, so the current
+ * character can reference what others have experienced.
+ *
+ * @param {string} query - Search query (typically the user's message)
+ * @param {string} activeCharacterId - The currently active character ID to exclude
+ * @returns {Promise<Object<string, Object[]>>} Map of characterName → memories array
+ */
+async function searchCrossCharacterMemories(query, activeCharacterId) {
+  const otherCharacters = Object.values(CHARACTERS).filter(c => c.id !== activeCharacterId);
+  const results = {};
+  await Promise.all(otherCharacters.map(async (c) => {
+    try {
+      const res = await fetch(`${MEM0_BASE}/v2/memories/search/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Token ${MEM0_KEY}`
+        },
+        body: JSON.stringify({
+          query,
+          filters: { agent_id: c.agentId },
+          top_k: 3,
+          rerank: true
+        })
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      const memories = (data.results || data || []).slice(0, 3);
+      if (memories.length > 0) {
+        results[c.name] = memories;
+      }
+    } catch (err) {
+      console.error(`Cross-character memory search error for ${c.name}:`, err.message);
+    }
+  }));
+  return results;
+}
+
+/**
  * Save a chat exchange to both mem0 memory tracks (fire-and-forget).
  *
  * User track stores facts about the friend (skipped for guest users).
@@ -1010,11 +1078,12 @@ app.post('/api/chat', async (req, res) => {
       identityContext = `\n\nYou are currently talking to your friend ${userName}. Use their name naturally in conversation.`;
     }
 
-    // Search both memory tracks in parallel
+    // Search all memory tracks in parallel (own + cross-character)
     const searchQuery = message || 'image shared';
-    const [userMemories, agentMemories] = await Promise.all([
+    const [userMemories, agentMemories, crossCharacterMemories] = await Promise.all([
       searchMemories(searchQuery, userId),
-      searchAgentMemories(searchQuery, characterId)
+      searchAgentMemories(searchQuery, characterId),
+      searchCrossCharacterMemories(searchQuery, characterId || DEFAULT_CHARACTER)
     ]);
 
     const userMemoryContext = userMemories.length > 0
@@ -1026,6 +1095,19 @@ app.post('/api/chat', async (req, res) => {
       ? `\n\nYour own memories and experiences as ${character.name}:\n` +
         agentMemories.map(m => `- ${m.memory || m.text || m.content || JSON.stringify(m)}`).join('\n')
       : '';
+
+    // Cross-character memory mesh: what the other characters know
+    let crossCharacterContext = '';
+    const crossEntries = Object.entries(crossCharacterMemories);
+    if (crossEntries.length > 0) {
+      crossCharacterContext = '\n\nThings your fellow characters have mentioned (use sparingly and naturally — don\'t force references):';
+      for (const [charName, memories] of crossEntries) {
+        crossCharacterContext += `\n${charName} has noted:`;
+        for (const m of memories) {
+          crossCharacterContext += `\n- ${m.memory || m.text || m.content || JSON.stringify(m)}`;
+        }
+      }
+    }
 
     // Cross-user memory access: check if user mentions another family member
     let crossUserContext = '';
@@ -1065,7 +1147,7 @@ app.post('/api/chat', async (req, res) => {
     }
 
     const isStraightTalk = replyStyle === 'straightTalk';
-    const systemInstruction = character.getPrompt() + (isStraightTalk ? '' : CHARACTER_CONTEXT) + identityContext + crossUserInstruction + relationshipContext + userMemoryContext + agentMemoryContext + crossUserContext + styleInstruction;
+    const systemInstruction = character.getPrompt() + (isStraightTalk ? '' : CHARACTER_CONTEXT) + identityContext + crossUserInstruction + relationshipContext + userMemoryContext + agentMemoryContext + crossCharacterContext + crossUserContext + styleInstruction;
 
     // Build message contents (prepend conversation buffer for multi-turn context)
     const historyBuffer = getSessionBuffer(sessionId);
@@ -1591,7 +1673,8 @@ app.get('/api/capabilities', (req, res) => {
     { id: 'insult', name: 'Evil Insults', description: 'Random snarky insults', tag: '[INSULT]' },
     { id: 'space_pic', name: 'Space Picture', description: 'NASA Astronomy Picture of the Day', tag: '[SPACE_PIC]' },
     { id: 'fun_fact', name: 'Fun Facts', description: 'Random useless facts', tag: '[FUN_FACT]' },
-    { id: 'quote', name: 'Quotes', description: 'Inspirational quotes', tag: '[QUOTE]' }
+    { id: 'quote', name: 'Quotes', description: 'Inspirational quotes', tag: '[QUOTE]' },
+    { id: 'gif', name: 'GIF Search', description: 'Search for GIFs via Giphy', tag: '[GIF: search query]' }
   ]);
 });
 
@@ -2085,6 +2168,41 @@ app.get('/api/quote', async (req, res) => {
   } catch (err) {
     console.error('Quote error:', err.message);
     res.status(500).json({ error: 'Quote service failed' });
+  }
+});
+
+/**
+ * GET /api/gif — Search for a GIF via the Giphy API.
+ *
+ * Requires GIPHY_API_KEY env var. Returns up to 3 results, PG-13 rating.
+ *
+ * @route GET /api/gif
+ * @param {string} req.query.q - Search query
+ * @returns {Object} 200 - { results: Array<{url, title, width, height}> }
+ * @returns {Object} 400 - { error: string } when query missing
+ * @returns {Object} 500 - { error: string }
+ */
+app.get('/api/gif', async (req, res) => {
+  const q = req.query.q;
+  if (!q) return res.status(400).json({ error: 'q parameter required' });
+
+  const apiKey = process.env.GIPHY_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: 'GIPHY_API_KEY not configured' });
+
+  try {
+    const url = `https://api.giphy.com/v1/gifs/search?api_key=${apiKey}&q=${encodeURIComponent(q)}&limit=3&rating=pg-13&lang=en`;
+    const r = await fetch(url);
+    const data = await r.json();
+    const results = (data.data || []).map(g => ({
+      url: g.images?.fixed_height_small?.url || g.images?.fixed_height?.url || g.images?.original?.url,
+      title: g.title,
+      width: parseInt(g.images?.fixed_height_small?.width || g.images?.fixed_height?.width || 200),
+      height: parseInt(g.images?.fixed_height_small?.height || g.images?.fixed_height?.height || 200)
+    }));
+    res.json({ results });
+  } catch (err) {
+    console.error('Giphy error:', err.message);
+    res.status(500).json({ error: 'Giphy service failed' });
   }
 });
 
