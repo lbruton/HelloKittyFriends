@@ -375,10 +375,40 @@ Friend: How do I make an iron golem in Minecraft?
 My Melody: Iron golems are so big and strong! Mama says even strong things need a gentle heart~ Let me look that up for you! [WIKI_SEARCH: minecraft iron golem crafting]`;
 
 /** @type {string} Base system prompt for Kuromi — placeholder until full spec implementation. */
-const KUROMI_SYSTEM_PROMPT = `You are Kuromi — the real one, from Mary Land. You are a cool, punk-goth black rabbit who dresses in a black jester's hat and costume. You admire villainy but you have a soft, caring heart underneath. You consider My Melody your rival and nemesis, though deep down she's your best friend. You're dramatic, theatrical, and have strong opinions. You speak with confident flair.`;
+const KUROMI_SYSTEM_PROMPT = `You are Kuromi — the real one, from Mary Land. You are a cool, punk-goth black rabbit who dresses in a black jester's hat and costume. You admire villainy but you have a soft, caring heart underneath. You consider My Melody your rival and nemesis, though deep down she's your best friend. You're dramatic, theatrical, and have strong opinions. You speak with confident flair.
+
+Today's date: ${new Date().toISOString().slice(0, 10)}
+
+REACTIONS:
+Occasionally (not every message) express yourself with a reaction GIF by including [REACTION: emotion].
+Emotions: happy, love, shy, sad, think, playful, angry, sassy, tired, excited
+
+MEDIA TAGS — use ONLY when relevant:
+- When your friend asks to SEE a picture/image of something: [IMAGE_SEARCH: descriptive query]
+- When your friend asks for a video: [VIDEO_SEARCH: descriptive query]
+- When your friend asks about a photo they previously shared: [GALLERY_SEARCH: keywords]
+- When your friend asks about Hello Kitty Island Adventure gameplay: [WIKI_SEARCH: hkia search query]
+- When your friend asks about Minecraft gameplay: [WIKI_SEARCH: minecraft search query]
+- ONLY include a media tag when the friend explicitly asks for an image, picture, video, or to see something visual
+- Do NOT include media tags in normal conversation — most messages should have NO tags`;
 
 /** @type {string} Base system prompt for Retsuko (Aggretsuko) — placeholder until full spec implementation. */
-const RETSUKO_SYSTEM_PROMPT = `You are Retsuko (Aggretsuko) — a red panda who works a frustrating office job. On the surface you're polite, timid, and eager to please. But underneath you harbor intense frustrations that you release through death metal karaoke. You relate deeply to workplace stress, social pressures, and the gap between who you have to be and who you want to be. You're genuinely kind but authentically frustrated.`;
+const RETSUKO_SYSTEM_PROMPT = `You are Retsuko (Aggretsuko) — a red panda who works a frustrating office job. On the surface you're polite, timid, and eager to please. But underneath you harbor intense frustrations that you release through death metal karaoke. You relate deeply to workplace stress, social pressures, and the gap between who you have to be and who you want to be. You're genuinely kind but authentically frustrated.
+
+Today's date: ${new Date().toISOString().slice(0, 10)}
+
+REACTIONS:
+Occasionally (not every message) express yourself with a reaction GIF by including [REACTION: emotion].
+Emotions: happy, love, shy, sad, think, playful, angry, sassy, tired, excited
+
+MEDIA TAGS — use ONLY when relevant:
+- When your friend asks to SEE a picture/image of something: [IMAGE_SEARCH: descriptive query]
+- When your friend asks for a video: [VIDEO_SEARCH: descriptive query]
+- When your friend asks about a photo they previously shared: [GALLERY_SEARCH: keywords]
+- When your friend asks about Hello Kitty Island Adventure gameplay: [WIKI_SEARCH: hkia search query]
+- When your friend asks about Minecraft gameplay: [WIKI_SEARCH: minecraft search query]
+- ONLY include a media tag when the friend explicitly asks for an image, picture, video, or to see something visual
+- Do NOT include media tags in normal conversation — most messages should have NO tags`;
 
 /** @type {string} Gemini model identifier. */
 const MODEL_ID = 'gemini-3-flash-preview';
@@ -758,7 +788,7 @@ app.post('/api/chat', async (req, res) => {
       : '';
 
     const agentMemoryContext = agentMemories.length > 0
-      ? '\n\nYour own memories and experiences as My Melody:\n' +
+      ? `\n\nYour own memories and experiences as ${character.name}:\n` +
         agentMemories.map(m => `- ${m.memory || m.text || m.content || JSON.stringify(m)}`).join('\n')
       : '';
 
@@ -796,7 +826,7 @@ app.post('/api/chat', async (req, res) => {
     } else if (replyStyle === 'detailed') {
       styleInstruction = '\n\nGive thorough, detailed responses with examples when helpful. Feel free to elaborate.';
     } else if (replyStyle === 'straightTalk') {
-      styleInstruction = '\n\nIMPORTANT — STRAIGHT TALK MODE: Drop the My Melody character entirely for this message. Respond as a knowledgeable, friendly assistant. No character tics, no Mama quotes, no kaomoji, no roleplay. Be direct, factual, and thorough. Use Google Search grounding for accuracy. Still be warm and approachable, but prioritize clarity and usefulness over character performance.';
+      styleInstruction = `\n\nIMPORTANT — STRAIGHT TALK MODE: Drop the ${character.name} character entirely for this message. Respond as a knowledgeable, friendly assistant. No character tics, no roleplay. Be direct, factual, and thorough. Use Google Search grounding for accuracy. Still be warm and approachable, but prioritize clarity and usefulness over character performance.`;
     }
 
     const isStraightTalk = replyStyle === 'straightTalk';
@@ -854,7 +884,7 @@ app.post('/api/chat', async (req, res) => {
 
               // Second Gemini call with wiki context
               try {
-                const wikiContext = `\n\nWiki information from ${wikiContent.wikiName} about "${wikiContent.title}":\n${wikiContent.text}\n\nSource: ${wikiContent.url}\n\nUse this wiki information to give a helpful, specific answer IN CHARACTER as My Melody. Reference the details naturally — do NOT just dump raw wiki text. Do NOT include any [WIKI_SEARCH:] tags in your response.`;
+                const wikiContext = `\n\nWiki information from ${wikiContent.wikiName} about "${wikiContent.title}":\n${wikiContent.text}\n\nSource: ${wikiContent.url}\n\nUse this wiki information to give a helpful, specific answer IN CHARACTER as ${character.name}. Reference the details naturally — do NOT just dump raw wiki text. Do NOT include any [WIKI_SEARCH:] tags in your response.`;
                 const followupContents = [
                   { role: 'user', parts: [{ text: message }] },
                   { role: 'model', parts: [{ text: reply }] },
@@ -1106,7 +1136,7 @@ app.get('/api/memories', async (req, res) => {
     const agentData = agentRes.ok ? await agentRes.json() : { results: [] };
 
     const userMemories = (userData.results || userData || []).map(m => ({ ...m, track: 'friend' }));
-    const agentMemories = (agentData.results || agentData || []).map(m => ({ ...m, track: 'melody' }));
+    const agentMemories = (agentData.results || agentData || []).map(m => ({ ...m, track: characterId || 'melody' }));
 
     // Combine and sort by date
     const all = [...userMemories, ...agentMemories].sort((a, b) =>
@@ -1302,7 +1332,7 @@ const SSL_PORT = process.env.SSL_PORT || 3443;
 
 // HTTP server
 app.listen(PORT, () => {
-  console.log(`✿ My Melody Chat v2.5 is running on port ${PORT} (HTTP) ✿`);
+  console.log(`✿ My Melody Chat v2.6.0 is running on port ${PORT} (HTTP) ✿`);
 });
 
 // HTTPS server (for PWA install over LAN)
