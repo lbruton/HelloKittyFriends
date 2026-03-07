@@ -1910,8 +1910,10 @@ function renderCoreMemory(coreMemory, characterId) {
       saveBtn.disabled = true;
       saveBtn.textContent = '...';
       try {
-        const updatedEntries = [...entries, val];
-        await fetch('/api/core-memory', {
+        // Cap at 9 existing + 1 new = 10 max (server also enforces 10-cap)
+        const trimmed = entries.length >= 10 ? entries.slice(-9) : entries;
+        const updatedEntries = [...trimmed, val];
+        const resp = await fetch('/api/core-memory', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1921,6 +1923,7 @@ function renderCoreMemory(coreMemory, characterId) {
             entries: updatedEntries
           })
         });
+        if (!resp.ok) throw new Error(`Server error: ${resp.status}`);
         loadMemories();
       } catch (err) {
         console.error('Core memory save error:', err);

@@ -335,7 +335,10 @@ function defaultCoreMemory() {
  * @returns {string}
  */
 function getCoreMemoryPath(userId, characterId) {
-  return join(CORE_MEMORY_DIR, `${userId}_${characterId}.json`);
+  // Validate against allowlists to prevent path traversal
+  const safeUser = (userId && KNOWN_USERS[userId]) ? userId : 'guest';
+  const safeChar = (characterId && CHARACTERS[characterId]) ? characterId : DEFAULT_CHARACTER;
+  return join(CORE_MEMORY_DIR, `${safeUser}_${safeChar}.json`);
 }
 
 /**
@@ -352,7 +355,8 @@ function readCoreMemory(userId, characterId) {
   let data;
   try {
     data = JSON.parse(readFileSync(filePath, 'utf-8'));
-  } catch {
+  } catch (err) {
+    if (err.code !== 'ENOENT') console.error('Core memory read error:', err.message);
     data = defaultCoreMemory();
   }
   coreMemoryCache.set(key, data);
@@ -379,10 +383,9 @@ function writeCoreMemory(userId, characterId, data) {
  * Skips empty categories. Returns empty string if nothing stored.
  * Caps output at 2000 characters.
  * @param {object} coreMemory
- * @param {string} characterName - e.g. "Melody"
  * @returns {string}
  */
-function buildCoreMemoryContext(coreMemory, characterName) {
+function buildCoreMemoryContext(coreMemory) {
   const lines = [];
   for (const [key, label] of Object.entries(CORE_MEMORY_CATEGORIES)) {
     const entries = coreMemory[key];
@@ -1167,7 +1170,13 @@ async function extractCoreMemory(userMessage, assistantReply, userId, characterI
     }
   });
 
-  const extracted = JSON.parse(response.text);
+  let extracted;
+  try {
+    extracted = JSON.parse(response.text);
+  } catch {
+    console.error('Core memory extraction: invalid JSON from model');
+    return;
+  }
   const existing = readCoreMemory(userId, characterId);
   const changed = mergeCoreMemory(existing, extracted);
   if (changed) {
@@ -1284,7 +1293,7 @@ app.post('/api/chat', async (req, res) => {
 
     // Read core memory (always-injected context)
     const coreMemory = readCoreMemory(userId, characterId || 'melody');
-    const coreMemoryContext = buildCoreMemoryContext(coreMemory, character.name);
+    const coreMemoryContext = buildCoreMemoryContext(coreMemory);
 
     // Search all memory tracks in parallel (own + cross-character)
     const searchQuery = message || 'image shared';
