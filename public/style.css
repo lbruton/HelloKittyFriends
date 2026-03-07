@@ -216,6 +216,10 @@ html, body {
   word-wrap: break-word;
 }
 
+.message-bubble p {
+  margin: 0;
+}
+
 .message.user .message-bubble {
   background: rgba(255, 105, 180, 0.75);
   backdrop-filter: blur(16px);
@@ -1509,7 +1513,7 @@ html, body {
 }
 
 .gif-card {
-  width: fit-content;
+  width: 100%;
   max-width: 100%;
 }
 
