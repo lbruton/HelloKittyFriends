@@ -1111,6 +1111,71 @@ function saveToMemory(userMessage, assistantReply, userId, meta = {}, character 
   }).catch(err => console.error('mem0 agent save error:', err.message));
 }
 
+// ─── Core Memory Extraction ───
+
+/**
+ * Merge extracted facts into existing core memory, deduplicating case-insensitively.
+ * Each category is capped at 10 entries (FIFO — oldest removed first).
+ * @param {object} existing - Current core memory object
+ * @param {object} extracted - Newly extracted facts from Gemini
+ * @returns {boolean} Whether any changes were made
+ */
+function mergeCoreMemory(existing, extracted) {
+  let changed = false;
+  for (const key of Object.keys(CORE_MEMORY_CATEGORIES)) {
+    const existingEntries = existing[key] || [];
+    const newEntries = extracted[key] || [];
+    const existingLower = existingEntries.map(e => e.toLowerCase().trim());
+
+    for (const entry of newEntries) {
+      if (!entry || typeof entry !== 'string') continue;
+      const normalized = entry.toLowerCase().trim();
+      if (normalized.length === 0) continue;
+      if (existingLower.includes(normalized)) continue;
+      existingEntries.push(entry.trim());
+      existingLower.push(normalized);
+      changed = true;
+    }
+
+    // FIFO cap at 10
+    if (existingEntries.length > 10) {
+      existingEntries.splice(0, existingEntries.length - 10);
+      changed = true;
+    }
+    existing[key] = existingEntries;
+  }
+  return changed;
+}
+
+/**
+ * Extract personal facts from a chat exchange and merge into core memory.
+ * Uses gemini-2.0-flash (cheapest model) for extraction. Fire-and-forget.
+ * @param {string} userMessage
+ * @param {string} assistantReply
+ * @param {string} userId
+ * @param {string} characterId
+ */
+async function extractCoreMemory(userMessage, assistantReply, userId, characterId) {
+  if (!userId || userId === 'guest') return;
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.0-flash',
+    contents: `User: ${userMessage}\nAssistant: ${assistantReply}`,
+    config: {
+      systemInstruction: 'Extract personal facts from this conversation that should be permanently remembered. Categorize into: aboutYou (name, age, location, occupation), familyAndPets (family members, pets), preferences (favorites, hobbies), importantDates (birthdays, anniversaries), insideJokes (shared humor). Return JSON with these keys. Each value is an array of short fact strings. Return empty arrays for categories with no new facts. Only extract CLEAR, EXPLICIT facts — do not infer or guess.',
+      responseMimeType: 'application/json'
+    }
+  });
+
+  const extracted = JSON.parse(response.text);
+  const existing = readCoreMemory(userId, characterId);
+  const changed = mergeCoreMemory(existing, extracted);
+  if (changed) {
+    writeCoreMemory(userId, characterId, existing);
+    console.log(`Core memory updated for ${userId}/${characterId}`);
+  }
+}
+
 // ─── Conversation Buffer (Session Store) ───
 
 /**
@@ -1217,6 +1282,10 @@ app.post('/api/chat', async (req, res) => {
       identityContext = `\n\nYou are currently talking to your friend ${userName}. Use their name naturally in conversation.`;
     }
 
+    // Read core memory (always-injected context)
+    const coreMemory = readCoreMemory(userId, characterId || 'melody');
+    const coreMemoryContext = buildCoreMemoryContext(coreMemory, character.name);
+
     // Search all memory tracks in parallel (own + cross-character)
     const searchQuery = message || 'image shared';
     const [userMemories, agentMemories, crossCharacterMemories] = await Promise.all([
@@ -1286,7 +1355,7 @@ app.post('/api/chat', async (req, res) => {
     }
 
     const isStraightTalk = replyStyle === 'straightTalk';
-    const systemInstruction = character.getPrompt() + (isStraightTalk ? '' : CHARACTER_CONTEXT) + identityContext + crossUserInstruction + relationshipContext + userMemoryContext + agentMemoryContext + crossCharacterContext + crossUserContext + styleInstruction;
+    const systemInstruction = character.getPrompt() + (isStraightTalk ? '' : CHARACTER_CONTEXT) + identityContext + crossUserInstruction + coreMemoryContext + relationshipContext + userMemoryContext + agentMemoryContext + crossCharacterContext + crossUserContext + styleInstruction;
 
     // Build message contents (prepend conversation buffer for multi-turn context)
     const historyBuffer = getSessionBuffer(sessionId);
@@ -1415,6 +1484,10 @@ app.post('/api/chat', async (req, res) => {
       replyStyle,
       skipAgentTrack: replyStyle === 'straightTalk'
     }, character);
+
+    // Extract core memory facts (fire-and-forget, non-blocking)
+    extractCoreMemory(message || '[shared an image]', reply, userId, characterId || 'melody')
+      .catch(err => console.error('Core memory extraction error:', err.message));
 
     res.json({ reply, sources, wikiSource });
   } catch (err) {
