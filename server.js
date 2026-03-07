@@ -45,7 +45,7 @@ import https from 'https';
 import { GoogleGenAI } from '@google/genai';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync, readdirSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync, readdirSync, renameSync } from 'fs';
 import { randomUUID } from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -140,8 +140,11 @@ const IMAGES_DIR = join(DATA_DIR, 'images');
 const IMAGES_META = join(DATA_DIR, 'images-meta.json');
 /** @type {string} Path to relationship/friendship stats JSON file. */
 const RELATIONSHIP_FILE = join(DATA_DIR, 'relationship.json');
+/** @type {string} Directory for core memory JSON files (per user+character). */
+const CORE_MEMORY_DIR = join(DATA_DIR, 'core-memory');
 if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
 if (!existsSync(IMAGES_DIR)) mkdirSync(IMAGES_DIR, { recursive: true });
+if (!existsSync(CORE_MEMORY_DIR)) mkdirSync(CORE_MEMORY_DIR, { recursive: true });
 if (!existsSync(IMAGES_META)) writeFileSync(IMAGES_META, '[]');
 if (!existsSync(RELATIONSHIP_FILE)) writeFileSync(RELATIONSHIP_FILE, JSON.stringify({
   firstChat: null,
@@ -299,6 +302,100 @@ function readJSON(path) {
  */
 function writeJSON(path, data) {
   writeFileSync(path, JSON.stringify(data, null, 2));
+}
+
+// ---------------------------------------------------------------------------
+// Core Memory — structured per-user, per-character memory blocks
+// ---------------------------------------------------------------------------
+
+/** @type {Object<string, string>} Display labels for each core memory category. */
+const CORE_MEMORY_CATEGORIES = {
+  aboutYou: 'About them',
+  familyAndPets: 'Family & Pets',
+  preferences: 'Preferences',
+  importantDates: 'Important dates',
+  insideJokes: 'Inside jokes'
+};
+
+/** @type {Map<string, object>} In-memory cache keyed by `${userId}_${characterId}`. */
+const coreMemoryCache = new Map();
+
+/**
+ * Return a blank core memory structure.
+ * @returns {object}
+ */
+function defaultCoreMemory() {
+  return { _version: 1, _updated: null, aboutYou: [], familyAndPets: [], preferences: [], importantDates: [], insideJokes: [] };
+}
+
+/**
+ * Resolve the JSON file path for a user+character core memory.
+ * @param {string} userId
+ * @param {string} characterId
+ * @returns {string}
+ */
+function getCoreMemoryPath(userId, characterId) {
+  return join(CORE_MEMORY_DIR, `${userId}_${characterId}.json`);
+}
+
+/**
+ * Read core memory for a user+character pair (cache-first, then disk).
+ * Returns defaultCoreMemory() if the file is missing or corrupt.
+ * @param {string} userId
+ * @param {string} characterId
+ * @returns {object}
+ */
+function readCoreMemory(userId, characterId) {
+  const key = `${userId}_${characterId}`;
+  if (coreMemoryCache.has(key)) return coreMemoryCache.get(key);
+  const filePath = getCoreMemoryPath(userId, characterId);
+  let data;
+  try {
+    data = JSON.parse(readFileSync(filePath, 'utf-8'));
+  } catch {
+    data = defaultCoreMemory();
+  }
+  coreMemoryCache.set(key, data);
+  return data;
+}
+
+/**
+ * Persist core memory to disk (atomic write via tmp+rename) and update cache.
+ * @param {string} userId
+ * @param {string} characterId
+ * @param {object} data
+ */
+function writeCoreMemory(userId, characterId, data) {
+  data._updated = new Date().toISOString();
+  const filePath = getCoreMemoryPath(userId, characterId);
+  const tmpPath = filePath + '.tmp';
+  writeFileSync(tmpPath, JSON.stringify(data, null, 2));
+  renameSync(tmpPath, filePath);
+  coreMemoryCache.set(`${userId}_${characterId}`, data);
+}
+
+/**
+ * Format core memory into a prompt-injection string.
+ * Skips empty categories. Returns empty string if nothing stored.
+ * Caps output at 2000 characters.
+ * @param {object} coreMemory
+ * @param {string} characterName - e.g. "Melody"
+ * @returns {string}
+ */
+function buildCoreMemoryContext(coreMemory, characterName) {
+  const lines = [];
+  for (const [key, label] of Object.entries(CORE_MEMORY_CATEGORIES)) {
+    const entries = coreMemory[key];
+    if (entries && entries.length > 0) {
+      lines.push(`${label}: ${entries.join(', ')}`);
+    }
+  }
+  if (lines.length === 0) return '';
+  let result = '\n\nCore things you know about your friend (always remember these):\n' + lines.join('\n');
+  if (result.length > 2000) {
+    result = result.slice(0, 1997) + '...';
+  }
+  return result;
 }
 
 /** @type {string} Base system prompt for My Melody — rebuilt per request with memory/relationship context appended. */
