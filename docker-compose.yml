@@ -56,3 +56,5 @@ volumes:
     external: true
     name: hellokittyfriends_melody-data
   qdrant_storage:
+    external: true
+    name: mymelo-mem0_qdrant_storage
