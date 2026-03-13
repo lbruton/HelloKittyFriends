@@ -7,7 +7,7 @@ mem0 cloud API surface, so server.js needs minimal changes (swap base URL).
 LLM: Gemini 2.5 Flash Lite (cheapest stable model)
 Embedder: text-embedding-004 via Gemini (768 dims)
 Vector Store: Qdrant
-Reranker: qwen2.5:3b via Ollama LXC (optional, improves search relevance)
+Reranker: llama3.2 via Ollama on gaming rig (optional, Gemini fallback if unreachable)
 """
 
 import os
@@ -120,24 +120,17 @@ def normalize_result(item):
     return item
 
 
-# ─── Reranker (Ollama qwen2.5:3b) ───
+# ─── Reranker (Ollama → Gemini fallback) ───
+
+RERANK_GEMINI_MODEL = os.getenv("RERANK_GEMINI_MODEL", "gemini-2.5-flash-lite")
 
 
-async def rerank_memories(query: str, memories: list, top_k: int) -> list:
-    """
-    Re-score search results using qwen2.5:3b on the Ollama LXC.
-
-    Sends query + memory texts in a single prompt, asks the model to score
-    each memory's relevance 0-10, then re-sorts by score and returns top_k.
-    Falls back to original order if Ollama is unreachable or response is malformed.
-    """
-    if not memories or len(memories) <= top_k:
-        return memories
-
+def _build_rerank_prompt(query: str, memories: list) -> str:
+    """Build the scoring prompt shared by both reranker backends."""
     numbered = "\n".join(
         f"{i+1}. {m.get('memory', '')}" for i, m in enumerate(memories)
     )
-    prompt = (
+    return (
         f"Rate each memory's relevance to the query on a scale of 0-10. "
         f"Return ONLY a JSON array of numbers, one score per memory, in order. "
         f"No explanation.\n\n"
@@ -146,45 +139,100 @@ async def rerank_memories(query: str, memories: list, top_k: int) -> list:
         f"Scores:"
     )
 
+
+def _parse_rerank_scores(content: str, count: int) -> list | None:
+    """Extract a JSON array of scores from LLM output. Returns None on failure."""
+    start = content.find("[")
+    end = content.rfind("]") + 1
+    if start == -1 or end == 0:
+        return None
     try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            resp = await client.post(
-                f"{RERANK_OLLAMA_URL}/api/chat",
-                json={
-                    "model": RERANK_MODEL,
-                    "messages": [{"role": "user", "content": prompt}],
-                    "stream": False,
-                },
-            )
-            resp.raise_for_status()
-            content = resp.json().get("message", {}).get("content", "")
+        scores = json.loads(content[start:end])
+        if len(scores) != count:
+            return None
+        return [float(s) for s in scores]
+    except (json.JSONDecodeError, ValueError):
+        return None
 
-            # Extract JSON array from response (model may wrap in markdown)
-            start = content.find("[")
-            end = content.rfind("]") + 1
-            if start == -1 or end == 0:
-                log.warning("Reranker returned no JSON array, falling back")
-                return memories[:top_k]
 
-            scores = json.loads(content[start:end])
-            if len(scores) != len(memories):
-                log.warning("Reranker returned %d scores for %d memories, falling back",
-                            len(scores), len(memories))
-                return memories[:top_k]
+def _apply_scores(memories: list, scores: list, top_k: int, backend: str) -> list:
+    """Attach scores, sort descending, return top_k."""
+    for i, m in enumerate(memories):
+        m["rerank_score"] = scores[i]
+    memories.sort(key=lambda m: m.get("rerank_score", 0), reverse=True)
+    log.info("Reranked %d→%d via %s (top=%.1f, bottom=%.1f)",
+             len(memories), top_k, backend,
+             memories[0].get("rerank_score", 0),
+             memories[-1].get("rerank_score", 0))
+    return memories[:top_k]
 
-            # Pair memories with scores, sort descending, return top_k
-            for i, m in enumerate(memories):
-                m["rerank_score"] = float(scores[i])
-            memories.sort(key=lambda m: m.get("rerank_score", 0), reverse=True)
-            log.info("Reranked %d→%d memories (top score=%.1f, bottom=%.1f)",
-                     len(memories), top_k,
-                     memories[0].get("rerank_score", 0),
-                     memories[-1].get("rerank_score", 0))
-            return memories[:top_k]
 
+async def _rerank_ollama(prompt: str, count: int) -> list | None:
+    """Try reranking via Ollama. Returns scores list or None."""
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        resp = await client.post(
+            f"{RERANK_OLLAMA_URL}/api/chat",
+            json={
+                "model": RERANK_MODEL,
+                "messages": [{"role": "user", "content": prompt}],
+                "stream": False,
+            },
+        )
+        resp.raise_for_status()
+        content = resp.json().get("message", {}).get("content", "")
+        return _parse_rerank_scores(content, count)
+
+
+async def _rerank_gemini(prompt: str, count: int) -> list | None:
+    """Fallback reranking via Gemini API. Returns scores list or None."""
+    url = (
+        f"https://generativelanguage.googleapis.com/v1beta/models/"
+        f"{RERANK_GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
+    )
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        resp = await client.post(url, json={
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"temperature": 0.1, "maxOutputTokens": 256},
+        })
+        resp.raise_for_status()
+        parts = resp.json().get("candidates", [{}])[0].get("content", {}).get("parts", [])
+        content = parts[0].get("text", "") if parts else ""
+        return _parse_rerank_scores(content, count)
+
+
+async def rerank_memories(query: str, memories: list, top_k: int) -> list:
+    """
+    Re-score search results for relevance, with tiered fallback:
+      1. Ollama on gaming rig (fast, free, GPU)
+      2. Gemini API (slower, costs credits, always available)
+      3. Raw vector similarity order (no reranking)
+    """
+    if not memories or len(memories) <= top_k:
+        return memories
+
+    prompt = _build_rerank_prompt(query, memories)
+    count = len(memories)
+
+    # Tier 1: Ollama
+    try:
+        scores = await _rerank_ollama(prompt, count)
+        if scores:
+            return _apply_scores(memories, scores, top_k, "ollama")
+        log.warning("Ollama reranker returned malformed scores, trying Gemini")
     except Exception as e:
-        log.warning("Reranker failed (%s), falling back to vector scores", e)
-        return memories[:top_k]
+        log.warning("Ollama reranker failed (%s), trying Gemini fallback", e)
+
+    # Tier 2: Gemini
+    try:
+        scores = await _rerank_gemini(prompt, count)
+        if scores:
+            return _apply_scores(memories, scores, top_k, "gemini")
+        log.warning("Gemini reranker returned malformed scores, falling back to vector")
+    except Exception as e:
+        log.warning("Gemini reranker also failed (%s), falling back to vector scores", e)
+
+    # Tier 3: raw vector similarity
+    return memories[:top_k]
 
 
 # ─── Cloud-Compatible API Endpoints ───
@@ -519,7 +567,7 @@ async def health():
         "qdrant": f"{QDRANT_HOST}:{QDRANT_PORT}",
         "reranker": {
             "enabled": RERANK_ENABLED,
-            "model": RERANK_MODEL,
-            "ollama_url": RERANK_OLLAMA_URL,
+            "primary": {"backend": "ollama", "model": RERANK_MODEL, "url": RERANK_OLLAMA_URL},
+            "fallback": {"backend": "gemini", "model": RERANK_GEMINI_MODEL},
         },
     }
