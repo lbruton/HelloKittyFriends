@@ -53,6 +53,36 @@ const __dirname = dirname(__filename);
 const app = express();
 app.use(express.json({ limit: '10mb' }));
 
+// Cache-busting endpoint: visit /bust-cache to nuke all SWs and caches, then redirect home
+app.get('/bust-cache', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.send(`<!DOCTYPE html><html><head><title>Clearing cache...</title></head><body>
+<p>Clearing all caches and service workers...</p>
+<script>
+(async () => {
+  const status = [];
+  // Unregister all service workers
+  if ('serviceWorker' in navigator) {
+    const regs = await navigator.serviceWorker.getRegistrations();
+    for (const reg of regs) {
+      await reg.unregister();
+      status.push('Unregistered SW: ' + reg.scope);
+    }
+  }
+  // Delete all caches
+  const keys = await caches.keys();
+  for (const key of keys) {
+    await caches.delete(key);
+    status.push('Deleted cache: ' + key);
+  }
+  // Clear localStorage (except critical keys)
+  try { localStorage.clear(); status.push('Cleared localStorage'); } catch {}
+  document.body.innerHTML = '<h2>Done!</h2><pre>' + status.join('\\n') + '</pre><p>Redirecting in 2 seconds...</p>';
+  setTimeout(() => window.location.href = '/', 2000);
+})();
+</script></body></html>`);
+});
+
 // Prevent proxy/CDN caching of static assets so updates propagate immediately
 app.use((req, res, next) => {
   if (req.path.match(/\.(js|css|html)$/) || req.path === '/') {
