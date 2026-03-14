@@ -16,19 +16,26 @@
   <script>
     // Version gate — runs before any cached assets load.
     // /api/ routes bypass the SW (network-only), so this always hits the server.
-    // If version mismatches: nuke all SWs + caches, hard reload. Guarantees freshness.
+    // If version mismatches: nuke all SWs + caches, redirect with cache-bust param.
+    // Uses sessionStorage flag to prevent infinite reload loops.
     (async () => {
       try {
+        if (sessionStorage.getItem('_versionBusting')) {
+          sessionStorage.removeItem('_versionBusting');
+          return; // Already tried once this session — don't loop
+        }
         const r = await fetch('/api/version');
         const d = await r.json();
         if (d.version !== '3.12.0') {
+          sessionStorage.setItem('_versionBusting', '1');
           if ('serviceWorker' in navigator) {
             const regs = await navigator.serviceWorker.getRegistrations();
             for (const reg of regs) await reg.unregister();
           }
           const keys = await caches.keys();
           for (const k of keys) await caches.delete(k);
-          window.location.reload(true);
+          // Redirect with cache-bust param to force fresh index.html from server
+          window.location.href = '/?_cb=' + Date.now();
         }
       } catch (e) { /* offline or first load — proceed normally */ }
     })();
