@@ -474,13 +474,15 @@ async function migrateOldUsers() {
     const newSlug = getEmailSlug(email);
     console.log(`Migration: migrating "${oldSlug}" → "${newSlug}" (${email})`);
 
-    // 1. Create user profile with migratedFrom field
+    // 1. Create user profile with migratedFrom field + display name from old slug
+    const displayName = oldSlug.charAt(0).toUpperCase() + oldSlug.slice(1);
     if (!getUserProfile(email)) {
       const profile = createUserProfile(email);
       profile.migratedFrom = oldSlug;
+      profile.displayName = displayName;
       updateUserProfile(email, profile);
     } else {
-      updateUserProfile(email, { migratedFrom: oldSlug });
+      updateUserProfile(email, { migratedFrom: oldSlug, displayName });
     }
 
     // 2. Rename core memory files
@@ -565,6 +567,15 @@ async function migrateOldUsers() {
     const currentData = readJSON(USERS_FILE) || {};
     currentData._migrated = true;
     writeJSON(USERS_FILE, currentData);
+  }
+
+  // Patch: backfill displayName for migrated profiles that are missing it
+  for (const [email, profile] of userProfileCache) {
+    if (profile.migratedFrom && !profile.displayName) {
+      const name = profile.migratedFrom.charAt(0).toUpperCase() + profile.migratedFrom.slice(1);
+      updateUserProfile(email, { displayName: name });
+      console.log(`Backfilled displayName "${name}" for migrated user ${getEmailSlug(email)}`);
+    }
   }
 }
 
