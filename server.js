@@ -83,6 +83,9 @@ app.get('/bust-cache', (req, res) => {
 </script></body></html>`);
 });
 
+// App version — bump on each deploy. Clients with mismatched version auto-refresh.
+const APP_VERSION = '3.11.1';
+
 // Prevent proxy/CDN caching of static assets so updates propagate immediately
 app.use((req, res, next) => {
   if (req.path.match(/\.(js|css|html)$/) || req.path === '/') {
@@ -91,6 +94,12 @@ app.use((req, res, next) => {
   }
   next();
 });
+
+// Version check API — clients poll this to detect stale code
+app.get('/api/version', (req, res) => {
+  res.json({ version: APP_VERSION });
+});
+
 app.use(express.static(join(__dirname, 'public')));
 app.use('/data/images', express.static(join(__dirname, 'data', 'images')));
 

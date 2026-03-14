@@ -13,13 +13,13 @@
  * @type {string}
  */
 
-const CACHE_NAME = 'melody-v3.11.0';
+const CACHE_NAME = 'melody-v3.11.1';
 
 const APP_SHELL = [
   '/',
   '/index.html',
-  '/style.css?v=3.11.0',
-  '/app.js?v=3.11.0',
+  '/style.css?v=3.11.1',
+  '/app.js?v=3.11.1',
   '/manifest.json',
   '/images/melody-avatar.png',
   '/images/kuromi-avatar.png',
