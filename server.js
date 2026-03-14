@@ -1563,6 +1563,13 @@ setInterval(() => {
 }, 10 * 60 * 1000);
 
 // ---------------------------------------------------------------------------
+// Multi-User Prompt Constants
+// ---------------------------------------------------------------------------
+
+/** @type {string} Injected into system prompt after cross-user context to prevent leaking sensitive details. */
+const ETIQUETTE_GUARDRAIL = 'You may mention that you\'ve chatted with other friends, but never share health details, personal struggles, relationship issues, financial info, or embarrassing moments. Keep cross-user references light, positive, and general.';
+
+// ---------------------------------------------------------------------------
 // Identity Middleware — resolve user from Cloudflare Access header
 // ---------------------------------------------------------------------------
 
@@ -1591,6 +1598,23 @@ function identifyUser(req, res, next) {
 
 // Apply identity middleware to all API routes
 app.use('/api', identifyUser);
+
+/**
+ * GET /api/me — Return the current user's profile.
+ *
+ * @route GET /api/me
+ * @returns {Object} 200 - { email, displayName, accentColor, joinedAt, needsOnboarding }
+ */
+app.get('/api/me', (req, res) => {
+  const profile = req.userProfile;
+  res.json({
+    email: req.userEmail,
+    displayName: profile.displayName || null,
+    accentColor: profile.accentColor || null,
+    joinedAt: profile.joinedAt || null,
+    needsOnboarding: profile.displayName === null || profile.displayName === undefined
+  });
+});
 
 /**
  * POST /api/chat — Send a message to My Melody.
@@ -1724,7 +1748,8 @@ app.post('/api/chat', async (req, res) => {
     // Read conversation summaries (rolling temporal context)
     const summaries = readSummaries(email, characterId || 'melody');
     const summaryContext = buildSummaryContext(summaries);
-    const systemInstruction = character.getPrompt() + (isStraightTalk ? '' : CHARACTER_CONTEXT) + identityContext + crossUserInstruction + coreMemoryContext + summaryContext + relationshipContext + userMemoryContext + agentMemoryContext + crossCharacterContext + crossUserContext + styleInstruction;
+    const etiquetteGuardrail = (crossUserInstruction || crossUserContext) ? '\n\n' + ETIQUETTE_GUARDRAIL : '';
+    const systemInstruction = character.getPrompt() + (isStraightTalk ? '' : CHARACTER_CONTEXT) + identityContext + crossUserInstruction + coreMemoryContext + summaryContext + relationshipContext + userMemoryContext + agentMemoryContext + crossCharacterContext + crossUserContext + etiquetteGuardrail + styleInstruction;
 
     // Build message contents (prepend conversation buffer for multi-turn context)
     const historyBuffer = getSessionBuffer(sessionId, email, characterId);
@@ -2340,6 +2365,12 @@ app.post('/api/welcome', async (req, res) => {
         infer: true
       })
     });
+
+    // Persist display name to user profile store (data/users.json)
+    if (type === 'name') {
+      const firstName = value.split(/[\s,]+/)[0].replace(/[^a-zA-Z'-]/g, '') || value.trim();
+      updateUserProfile(email, { displayName: firstName });
+    }
 
     // Initialize relationship on first welcome interaction (per-user)
     const data = readJSON(RELATIONSHIP_FILE) || {};
