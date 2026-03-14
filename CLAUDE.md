@@ -39,7 +39,7 @@ Single-container Node.js app (Express) with a static frontend. No build step.
 ```
 server.js              — Express API server (Gemini 3 Flash, mem0, Brave Search)
 public/
-  index.html           — SPA shell (3 tabs: Chat, Images, Memories)
+  index.html           — SPA shell (5 tabs: Chat, Images, Memories, Journal, Videos)
   style.css            — All styles, CSS vars, dark mode, accent color
   app.js               — All client-side logic (no framework)
   manifest.json        — PWA manifest (installable on Android/iOS)
@@ -89,7 +89,8 @@ The `identifyUser` middleware (applied to all `/api/*` routes) extracts the emai
 - **Agent track** (`agent_id: my-melody`) — Melody's own evolving personality, opinions, experiences (global, not per-user)
 - Both tracks are searched in parallel on each chat request and injected into the system prompt
 - Both tracks are saved to after each exchange (fire-and-forget)
-- Memories tab in frontend shows both tracks labeled "Friend" and "Melody"
+- Memories tab in frontend shows both tracks labeled "Friend" and "Melody" (core memory + raw mem0 memories)
+- Journal tab shows conversation summaries (daily digests extracted by the LLM)
 
 ### Relationship Tracking
 
@@ -203,7 +204,7 @@ Uses Ali:Chat format (example dialogues in system prompt) per SillyTavern commun
 - **safesearch=strict** — Required for Brave image/video API (does not accept "moderate" — returns 422)
 - **Hardcoded #FFFFFF on avatars** — Avatar backgrounds use `#FFFFFF` not `var(--white)` to prevent dark mode from inverting Melody's skin color
 - **Web Audio API for sounds** — Synthesized chimes (sine waves), zero audio files. Reply chime = C5+E5 ascending, typing tick = A5 blip
-- **PWA with service worker** — Stale-while-revalidate for static assets, network-only for `/api/` and `/data/`. Cache name `melody-v2.2`
+- **PWA with service worker** — Stale-while-revalidate for static assets, network-only for `/api/` and `/data/`. Cache name `melody-v3.11.0`
 - **Welcome flow in client** — First-time onboarding captures name/color/interests via interactive chat, saves each to mem0 via `/api/welcome`. Returning users get personalized greeting via `/api/welcome-status`
 - **Accent color from favorite color** — Mapped via `COLOR_MAP` object, applied as `--accent-highlight` CSS variable on tab indicators
 

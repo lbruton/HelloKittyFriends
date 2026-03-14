@@ -2222,16 +2222,6 @@ async function loadMemories() {
     console.error('Core memory load error:', e);
   }
 
-  // Load conversation summaries section
-  try {
-    const _sumCharId = CHARACTER_CONFIG[activeCharacter] ? activeCharacter : 'melody';
-    const sumRes = await fetch(`/api/summaries?characterId=${_sumCharId}`);
-    const summaries = await sumRes.json();
-    renderSummaries(summaries, _sumCharId);
-  } catch (e) {
-    console.error('Summaries load error:', e);
-  }
-
   memoryList.innerHTML = '<p class="empty-state">Loading memories...</p>';
   try {
     const _charId = CHARACTER_CONFIG[activeCharacter] ? activeCharacter : 'melody';
