@@ -18,8 +18,8 @@ const CACHE_NAME = 'melody-v3.11.0';
 const APP_SHELL = [
   '/',
   '/index.html',
-  '/style.css',
-  '/app.js',
+  '/style.css?v=3.11.0',
+  '/app.js?v=3.11.0',
   '/manifest.json',
   '/images/melody-avatar.png',
   '/images/kuromi-avatar.png',
