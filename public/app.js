@@ -1830,6 +1830,7 @@ async function loadGallery() {
       del.textContent = '\u00d7';
       del.addEventListener('click', async (e) => {
         e.stopPropagation();
+        if (!confirm('Delete this image?')) return;
         await fetch(`/api/images/${img.id}`, { method: 'DELETE' });
         loadGallery();
       });
@@ -1976,6 +1977,7 @@ function renderCoreMemory(coreMemory, characterId) {
       delBtn.className = 'core-memory-delete-btn';
       delBtn.textContent = '\u00D7';
       delBtn.addEventListener('click', async () => {
+        if (!confirm('Delete this core memory?')) return;
         try {
           await fetch(`/api/core-memory/${cat}/${idx}?characterId=${characterId}`, { method: 'DELETE' });
           loadMemories();
@@ -2269,6 +2271,7 @@ async function loadMemories() {
       del.className = 'delete-btn';
       del.textContent = '\u00d7';
       del.addEventListener('click', async () => {
+        if (!confirm('Delete this memory?')) return;
         await fetch(`/api/memories/${mem.id}`, { method: 'DELETE' });
         loadMemories();
       });
@@ -2482,6 +2485,7 @@ function createVideoCard(video, mode) {
     delBtn.textContent = '\u00d7';
     delBtn.title = 'Remove';
     delBtn.addEventListener('click', async () => {
+      if (!confirm('Remove this favorite?')) return;
       try {
         await fetch(`/api/youtube-favorites/${video.id}`, { method: 'DELETE' });
         card.remove();
