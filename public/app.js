@@ -2062,10 +2062,11 @@ function renderCoreMemory(coreMemory, characterId) {
 }
 
 /**
- * Render the conversation summaries section in the Memories tab.
- * Positioned between Core Memory and mem0 memories.
+ * Render conversation summaries into a target container (Journal tab) or the Memories tab.
  * @param {Array} summaries - Array of summary objects from the API.
  * @param {string} characterId - Active character ID for API calls.
+ * @param {HTMLElement} [targetContainer] - Optional container to render into (e.g., Journal tab's journalList).
+ * @param {Function} [onRefresh] - Optional callback to refresh the parent tab after delete.
  */
 function renderSummaries(summaries, characterId, targetContainer, onRefresh) {
   // Get or create section container
@@ -2286,8 +2287,8 @@ async function loadJournalTab() {
   const journalList = document.getElementById('journalList');
   if (!journalList) return;
 
-  const charConfig = CHARACTER_CONFIG[activeCharacter] || CHARACTER_CONFIG.melody;
   const charId = CHARACTER_CONFIG[activeCharacter] ? activeCharacter : 'melody';
+  const charConfig = CHARACTER_CONFIG[charId];
 
   // Update tab header with character name
   const journalHeader = document.querySelector('#tabJournal .tab-header h2');
@@ -2299,6 +2300,7 @@ async function loadJournalTab() {
 
   try {
     const res = await fetch(`/api/summaries?characterId=${charId}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const summaries = await res.json();
     journalList.innerHTML = '';
     renderSummaries(summaries, charId, journalList, loadJournalTab);
