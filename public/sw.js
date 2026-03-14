@@ -13,7 +13,7 @@
  * @type {string}
  */
 
-const CACHE_NAME = 'melody-v3.10.0';
+const CACHE_NAME = 'melody-v3.11.0';
 
 const APP_SHELL = [
   '/',
